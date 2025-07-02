@@ -8,6 +8,8 @@ import SwiftUI
 struct HistoryView: View {
     @ObservedObject private var history = HistoryService.shared
     @State private var editMode: EditMode = .inactive
+    @State private var exportURL: URL?
+    @State private var showingShare = false
 
     // DateFormatter for displaying scan timestamps
     private let dateFormatter: DateFormatter = {
@@ -55,8 +57,21 @@ struct HistoryView: View {
             ToolbarItem(placement: .navigationBarTrailing) {
                 EditButton()
             }
+            ToolbarItem(placement: .navigationBarLeading) {
+                Button {
+                    exportURL = history.exportCSV()
+                    showingShare = exportURL != nil
+                } label: {
+                    Label("Export", systemImage: "square.and.arrow.up")
+                }
+            }
         }
         .environment(\.editMode, $editMode)
+        .sheet(isPresented: $showingShare, onDismiss: { exportURL = nil }) {
+            if let url = exportURL {
+                ShareSheet(activityItems: [url])
+            }
+        }
     }
 }
 

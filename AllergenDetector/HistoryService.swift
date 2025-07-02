@@ -46,4 +46,30 @@ class HistoryService: ObservableObject {
             UserDefaults.standard.set(data, forKey: defaultsKey)
         }
     }
+
+    /// Exports the current history records to a temporary CSV file and returns its URL.
+    /// The CSV contains columns: barcode, product name, date scanned, and safety status.
+    func exportCSV() -> URL? {
+        let formatter = DateFormatter()
+        formatter.dateStyle = .short
+        formatter.timeStyle = .short
+
+        var csvLines: [String] = ["Barcode,Product,Date,Safe"]
+        for record in records {
+            let dateString = formatter.string(from: record.dateScanned)
+            let safeString = record.isSafe ? "Yes" : "No"
+            let line = "\(record.barcode),\(record.productName),\(dateString),\(safeString)"
+            csvLines.append(line)
+        }
+
+        let csvString = csvLines.joined(separator: "\n")
+        let url = FileManager.default.temporaryDirectory.appendingPathComponent("ScanHistory.csv")
+        do {
+            try csvString.write(to: url, atomically: true, encoding: .utf8)
+            return url
+        } catch {
+            print("Failed to export CSV: \(error)")
+            return nil
+        }
+    }
 }
