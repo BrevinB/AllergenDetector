@@ -12,6 +12,7 @@ struct ContentView: View {
     @StateObject private var viewModel = ScannerViewModel()
     @State private var isShowingScanner = false
     @State private var pulse = false  // For button pulse animation
+    @State private var manualBarcode = ""
 
     // MARK: - Subviews for Animations
 
@@ -120,18 +121,40 @@ struct ContentView: View {
                         }
                         .frame(height: 350)
 
-                        HStack {
-                            Spacer()
-                            Button(role: .cancel) {
-                                isShowingScanner = false
-                            } label: {
-                                Label("Cancel", systemImage: "xmark.circle")
+                        VStack(spacing: 12) {
+                            TextField("Enter barcode number", text: $manualBarcode)
+                                .textFieldStyle(RoundedBorderTextFieldStyle())
+                                .keyboardType(.numberPad)
+                                .padding(.horizontal)
+                            Text("Barcodes are numeric and usually 12 digits long")
+                                .font(.footnote)
+                                .foregroundColor(.secondary)
+
+                            HStack {
+                                Spacer()
+                                Button("Submit") {
+                                    guard !manualBarcode.isEmpty else { return }
+                                    viewModel.handleBarcode(
+                                        manualBarcode,
+                                        selectedAllergens: settings.selectedAllergens
+                                    )
+                                    manualBarcode = ""
+                                    isShowingScanner = false
+                                }
+                                .buttonStyle(.borderedProminent)
+                                Spacer()
+                                Button(role: .cancel) {
+                                    isShowingScanner = false
+                                } label: {
+                                    Label("Cancel", systemImage: "xmark.circle")
+                                }
+                                .font(.headline)
+                                .foregroundColor(.primary)
+                                Spacer()
                             }
-                            .font(.headline)
-                            .foregroundColor(.primary)
-                            Spacer()
                         }
                         .padding(.vertical, 16)
+                        .frame(maxWidth: .infinity)
                         .background(.ultraThinMaterial)
                     }
                     .clipShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
