@@ -126,6 +126,9 @@ struct ContentView: View {
                                 .textFieldStyle(RoundedBorderTextFieldStyle())
                                 .keyboardType(.numberPad)
                                 .padding(.horizontal)
+                            Text("Barcodes are numeric and usually 12 digits long")
+                                .font(.footnote)
+                                .foregroundColor(.secondary)
 
                             HStack {
                                 Spacer()
