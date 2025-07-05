@@ -4,4 +4,4 @@ AllergenDetector is an iOS application that scans product barcodes and warns use
 
 ## Exporting History
 
-Open the **History** screen and tap the **Export** button to share a CSV file of all recorded scans. The file includes the barcode, product name, date scanned, and whether the item was marked safe.
+Open the **History** screen and tap the **Export** button to share a CSV file of all recorded scans. The export runs briefly in the background and a spinner is shown until the share sheet appears. The CSV includes the barcode, product name, date scanned, and whether the item was marked safe.
