@@ -47,35 +47,34 @@ class HistoryService: ObservableObject {
         }
     }
 
-    /// Creates a CSV string from the history records.
-    private func makeCSVString() -> String {
+    /// Creates a plain text representation of the history records.
+    private func makeTextString() -> String {
         let formatter = DateFormatter()
         formatter.dateStyle = .short
         formatter.timeStyle = .short
 
-        var csvLines: [String] = ["Barcode,Product,Date,Safe"]
+        var lines: [String] = []
         for record in records {
             let dateString = formatter.string(from: record.dateScanned)
-            let safeString = record.isSafe ? "Yes" : "No"
-            let line = "\(record.barcode),\(record.productName),\(dateString),\(safeString)"
-            csvLines.append(line)
+            let safeString = record.isSafe ? "Safe" : "Unsafe"
+            let line = "\(record.barcode) - \(record.productName) - \(dateString) - \(safeString)"
+            lines.append(line)
         }
 
-        return csvLines.joined(separator: "\n")
+        return lines.joined(separator: "\n")
     }
 
-    /// Exports the current history records to a temporary CSV file and returns its URL.
-    /// The CSV contains columns: barcode, product name, date scanned, and safety status.
+    /// Exports the current history records to a temporary text file and returns its URL.
     /// Runs on a background queue to avoid blocking the main thread.
-    func exportCSV(completion: @escaping (URL?) -> Void) {
+    func exportText(completion: @escaping (URL?) -> Void) {
         DispatchQueue.global(qos: .userInitiated).async {
-            let csvString = self.makeCSVString()
-            let url = FileManager.default.temporaryDirectory.appendingPathComponent("ScanHistory.csv")
+            let text = self.makeTextString()
+            let url = FileManager.default.temporaryDirectory.appendingPathComponent("ScanHistory.txt")
             do {
-                try csvString.write(to: url, atomically: true, encoding: .utf8)
+                try text.write(to: url, atomically: true, encoding: .utf8)
                 DispatchQueue.main.async { completion(url) }
             } catch {
-                print("Failed to export CSV: \(error)")
+                print("Failed to export history: \(error)")
                 DispatchQueue.main.async { completion(nil) }
             }
         }

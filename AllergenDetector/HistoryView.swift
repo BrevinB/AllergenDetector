@@ -61,7 +61,7 @@ struct HistoryView: View {
             ToolbarItem(placement: .navigationBarLeading) {
                 Button {
                     isExporting = true
-                    history.exportCSV { url in
+                    history.exportText { url in
                         exportURL = url
                         showingShare = url != nil
                         isExporting = false
