@@ -116,6 +116,7 @@ class ScannerViewModel: ObservableObject {
     @Published var alertMessage: String?
     @Published var showAlert = false
     @Published var matchDetails: [AllergenMatchDetail] = []
+    @Published var allergenStatuses: [Allergen: Bool] = [:]
 
     func handleBarcode(_ code: String, selectedAllergens: Set<Allergen>) {
         isLoading = true
@@ -148,7 +149,7 @@ class ScannerViewModel: ObservableObject {
         print("[DEBUG] Ingredients for \(product.productName):", product.ingredients)
         
         let intersection = Set(product.allergens).intersection(selectedAllergens)
-        
+
         var detailsArray: [AllergenMatchDetail] = []
         
         for ingredient in product.ingredients {
@@ -174,20 +175,40 @@ class ScannerViewModel: ObservableObject {
             }
         }
         
-        var isSafe = intersection.isEmpty
-        if !detailsArray.isEmpty { isSafe = false }
-        
+        // Determine which allergens were flagged either from the product's
+        // reported allergens or via ingredient matching
+        let ingredientAllergens = Set(detailsArray.map { $0.allergen })
+        let flaggedAllergens = intersection.union(ingredientAllergens)
+
+        // Build status dictionary for each selected allergen
+        var statusDict: [Allergen: Bool] = [:]
+        for allergen in selectedAllergens {
+            statusDict[allergen] = !flaggedAllergens.contains(allergen)
+        }
+
+        let isSafe = !statusDict.values.contains(false)
+
         self.matchDetails = detailsArray
-        
+        self.allergenStatuses = statusDict
+
+        // Compose alert message summarizing safety
         if isSafe {
             alertMessage = "\(product.productName) is safe to eat!"
         } else {
-            let names = intersection.map { $0.displayName }.joined(separator: ", ")
-            alertMessage = "Warning: contains \(names)."
+            alertMessage = "\(product.productName) is NOT safe."
         }
-        
+
+        let statusLines = selectedAllergens
+            .sorted { $0.displayName < $1.displayName }
+            .map { allergen in
+                let safe = statusDict[allergen] ?? true
+                return "\(allergen.displayName): " + (safe ? "Safe" : "Not Safe")
+            }
+            .joined(separator: "\n")
+        alertMessage! += "\n" + statusLines
+
         if !detailsArray.isEmpty {
-            alertMessage = (alertMessage ?? "") + "\nDetails:"
+            alertMessage! += "\nDetails:"
             for detail in detailsArray {
                 alertMessage! += "\n\(detail.ingredient): \(detail.allergen.displayName) - \(detail.explanation)"
             }
