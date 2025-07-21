@@ -12,7 +12,7 @@ import SwiftUI
 class ScannerViewModel: ObservableObject {
     struct AllergenMatchDetail {
         let ingredient: String
-        let allergen: Allergen
+        let allergenName: String
         let explanation: String
     }
 
@@ -118,13 +118,21 @@ class ScannerViewModel: ObservableObject {
     @Published var matchDetails: [AllergenMatchDetail] = []
     @Published var allergenStatuses: [Allergen: Bool] = [:]
 
-    func handleBarcode(_ code: String, selectedAllergens: Set<Allergen>) {
+    func handleBarcode(
+        _ code: String,
+        selectedAllergens: Set<Allergen>,
+        customAllergens: [String]
+    ) {
         isLoading = true
         Task {
             do {
                 let product = try await ProductService.shared.fetchProduct(barcode: code)
                 scannedProduct = product
-                checkAllergens(product, selectedAllergens: selectedAllergens)
+                checkAllergens(
+                    product,
+                    selectedAllergens: selectedAllergens,
+                    customAllergens: customAllergens
+                )
             } catch _ as ProductError {
                 alertMessage = "Product not found in database. Please try another barcode."
                 showAlert = true
@@ -145,7 +153,11 @@ class ScannerViewModel: ObservableObject {
         }
     }
 
-    private func checkAllergens(_ product: Product, selectedAllergens: Set<Allergen>) {
+    private func checkAllergens(
+        _ product: Product,
+        selectedAllergens: Set<Allergen>,
+        customAllergens: [String]
+    ) {
         print("[DEBUG] Ingredients for \(product.productName):", product.ingredients)
         
         let intersection = Set(product.allergens).intersection(selectedAllergens)
@@ -166,9 +178,26 @@ class ScannerViewModel: ObservableObject {
             
             for (key, mapped) in Self.ingredientToAllergen {
                 if lowerIngredient.contains(key) && selectedAllergens.contains(mapped.allergen) {
-                    // Avoid duplicates for the same ingredient+allergen combination
-                    if !detailsArray.contains(where: { $0.ingredient == ingredient && $0.allergen == mapped.allergen }) {
-                        let detail = AllergenMatchDetail(ingredient: ingredient, allergen: mapped.allergen, explanation: mapped.explanation)
+                    if !detailsArray.contains(where: { $0.ingredient == ingredient && $0.allergenName == mapped.allergen.displayName }) {
+                        let detail = AllergenMatchDetail(
+                            ingredient: ingredient,
+                            allergenName: mapped.allergen.displayName,
+                            explanation: mapped.explanation
+                        )
+                        detailsArray.append(detail)
+                    }
+                }
+            }
+
+            for custom in customAllergens {
+                let customLower = custom.lowercased()
+                if lowerIngredient.contains(customLower) {
+                    if !detailsArray.contains(where: { $0.ingredient == ingredient && $0.allergenName.lowercased() == customLower }) {
+                        let detail = AllergenMatchDetail(
+                            ingredient: ingredient,
+                            allergenName: custom,
+                            explanation: "Custom allergen match"
+                        )
                         detailsArray.append(detail)
                     }
                 }
@@ -195,7 +224,11 @@ class ScannerViewModel: ObservableObject {
         if isSafe {
             alertMessage = "\(product.productName) is safe to eat!"
         } else {
-            alertMessage = "\(product.productName) is NOT safe."
+
+            let baseNames = intersection.map { $0.displayName }
+            let detailNames = detailsArray.map { $0.allergenName }
+            let names = Array(Set(baseNames + detailNames)).joined(separator: ", ")
+            alertMessage = "Warning: contains \(names)."
         }
 
         let statusLines = selectedAllergens
@@ -210,7 +243,7 @@ class ScannerViewModel: ObservableObject {
         if !detailsArray.isEmpty {
             alertMessage! += "\nDetails:"
             for detail in detailsArray {
-                alertMessage! += "\n\(detail.ingredient): \(detail.allergen.displayName) - \(detail.explanation)"
+                alertMessage! += "\n\(detail.ingredient): \(detail.allergenName) - \(detail.explanation)"
             }
         }
         

@@ -18,7 +18,7 @@ struct ContentView: View {
 
     @ViewBuilder
     private var allergenChipsView: some View {
-        if !settings.selectedAllergens.isEmpty {
+        if !settings.selectedAllergens.isEmpty || !settings.customAllergens.isEmpty {
             ScrollView(.horizontal, showsIndicators: false) {
                 HStack(spacing: 8) {
                     ForEach(Array(settings.selectedAllergens)) { allergen in
@@ -31,9 +31,22 @@ struct ContentView: View {
                             .clipShape(Capsule())
                             .transition(.scale.combined(with: .opacity))
                     }
+                    ForEach(settings.customAllergens, id: \.self) { custom in
+                        Text(custom)
+                            .font(.subheadline.weight(.semibold))
+                            .padding(.horizontal, 12)
+                            .padding(.vertical, 6)
+                            .background(Color.secondary.opacity(0.1))
+                            .foregroundColor(.primary)
+                            .clipShape(Capsule())
+                            .transition(.scale.combined(with: .opacity))
+                    }
                 }
                 .padding(.horizontal)
-                .animation(.easeInOut(duration: 0.3), value: settings.selectedAllergens)
+                .animation(
+                    .easeInOut(duration: 0.3),
+                    value: settings.selectedAllergens.count + settings.customAllergens.count
+                )
             }
         } else {
             Text("No allergens selected")
@@ -116,7 +129,8 @@ struct ContentView: View {
                         BarcodeScannerView { code in
                             viewModel.handleBarcode(
                                 code,
-                                selectedAllergens: settings.selectedAllergens
+                                selectedAllergens: settings.selectedAllergens,
+                                customAllergens: settings.customAllergens
                             )
                             isShowingScanner = false
                         }
@@ -227,9 +241,14 @@ struct ProductCardView: View {
                 HStack(alignment: .top) {
                     Text("Allergens:")
                         .font(.subheadline.weight(.semibold))
-                    // Combine allergens from product.allergens (filtered by selectedAllergens) and matchDetails.allergen, showing unique allergens
-                    let productAllergensSet = Set(product.allergens).intersection(selectedAllergens)
-                    let matchAllergensSet = Set(matchDetails.map { $0.allergen })
+                    // Combine allergens from product.allergens (filtered by selectedAllergens)
+                    // and any found via ingredient matching or custom allergens
+                    let productAllergensSet = Set(
+                        product.allergens
+                            .filter { selectedAllergens.contains($0) }
+                            .map { $0.displayName }
+                    )
+                    let matchAllergensSet = Set(matchDetails.map { $0.allergenName })
                     let uniqueAllergens = productAllergensSet.union(matchAllergensSet)
 
                     if uniqueAllergens.isEmpty {
@@ -237,8 +256,8 @@ struct ProductCardView: View {
                             .font(.subheadline)
                     } else {
                         VStack(alignment: .leading, spacing: 4) {
-                            ForEach(Array(uniqueAllergens)) { allergen in
-                                Text("• \(allergen.displayName)")
+                            ForEach(Array(uniqueAllergens), id: \.self) { name in
+                                Text("• \(name)")
                                     .font(.subheadline)
                             }
                         }
@@ -270,7 +289,7 @@ struct ProductCardView: View {
                         .foregroundColor(.primary)
                     ForEach(matchDetails.indices, id: \.self) { idx in
                         let detail = matchDetails[idx]
-                        Text("\u{2022} \(detail.ingredient): \(detail.allergen.displayName) — \(detail.explanation)")
+                        Text("\u{2022} \(detail.ingredient): \(detail.allergenName) — \(detail.explanation)")
                             .font(.footnote)
                     }
                 }
