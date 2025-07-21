@@ -12,6 +12,7 @@ struct ContentView: View {
     @StateObject private var viewModel = ScannerViewModel()
     @State private var isShowingScanner = false
     @State private var pulse = false  // For button pulse animation
+    @State private var manualBarcode = ""
 
     // MARK: - Subviews for Animations
 
@@ -76,7 +77,8 @@ struct ContentView: View {
             ProductCardView(
                 product: product,
                 selectedAllergens: settings.selectedAllergens,
-                matchDetails: viewModel.matchDetails
+                matchDetails: viewModel.matchDetails,
+                allergenStatuses: viewModel.allergenStatuses
             )
             .padding(.horizontal)
             .transition(.move(edge: .bottom).combined(with: .opacity))
@@ -134,18 +136,40 @@ struct ContentView: View {
                         }
                         .frame(height: 350)
 
-                        HStack {
-                            Spacer()
-                            Button(role: .cancel) {
-                                isShowingScanner = false
-                            } label: {
-                                Label("Cancel", systemImage: "xmark.circle")
+                        VStack(spacing: 12) {
+                            TextField("Enter barcode number", text: $manualBarcode)
+                                .textFieldStyle(RoundedBorderTextFieldStyle())
+                                .keyboardType(.numberPad)
+                                .padding(.horizontal)
+                            Text("Barcodes are numeric and usually 12 digits long")
+                                .font(.footnote)
+                                .foregroundColor(.secondary)
+
+                            HStack {
+                                Spacer()
+                                Button("Submit") {
+                                    guard !manualBarcode.isEmpty else { return }
+                                    viewModel.handleBarcode(
+                                        manualBarcode,
+                                        selectedAllergens: settings.selectedAllergens
+                                    )
+                                    manualBarcode = ""
+                                    isShowingScanner = false
+                                }
+                                .buttonStyle(.borderedProminent)
+                                Spacer()
+                                Button(role: .cancel) {
+                                    isShowingScanner = false
+                                } label: {
+                                    Label("Cancel", systemImage: "xmark.circle")
+                                }
+                                .font(.headline)
+                                .foregroundColor(.primary)
+                                Spacer()
                             }
-                            .font(.headline)
-                            .foregroundColor(.primary)
-                            Spacer()
                         }
                         .padding(.vertical, 16)
+                        .frame(maxWidth: .infinity)
                         .background(.ultraThinMaterial)
                     }
                     .clipShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
@@ -180,10 +204,11 @@ struct ProductCardView: View {
     let product: Product
     let selectedAllergens: Set<Allergen>
     let matchDetails: [ScannerViewModel.AllergenMatchDetail]
+    let allergenStatuses: [Allergen: Bool]
 
     // Updated isSafe logic: product.allergens disjoint with selectedAllergens AND no matchDetails
     var isSafe: Bool {
-        Set(product.allergens).isDisjoint(with: selectedAllergens) && matchDetails.isEmpty
+        !allergenStatuses.values.contains(false)
     }
 
     var body: some View {
@@ -235,6 +260,21 @@ struct ProductCardView: View {
                                 Text("• \(name)")
                                     .font(.subheadline)
                             }
+                        }
+                    }
+                }
+
+                if !allergenStatuses.isEmpty {
+                    VStack(alignment: .leading, spacing: 4) {
+                        Text("Selected Allergen Results:")
+                            .font(.subheadline.weight(.semibold))
+                        ForEach(Array(selectedAllergens).sorted { $0.displayName < $1.displayName }) { allergen in
+                            HStack {
+                                Image(systemName: allergenStatuses[allergen] == true ? "checkmark.circle" : "xmark.octagon")
+                                    .foregroundColor(allergenStatuses[allergen] == true ? .green : .red)
+                                Text(allergen.displayName)
+                            }
+                            .font(.subheadline)
                         }
                     }
                 }
