@@ -64,7 +64,8 @@ struct ContentView: View {
             ProductCardView(
                 product: product,
                 selectedAllergens: settings.selectedAllergens,
-                matchDetails: viewModel.matchDetails
+                matchDetails: viewModel.matchDetails,
+                allergenStatuses: viewModel.allergenStatuses
             )
             .padding(.horizontal)
             .transition(.move(edge: .bottom).combined(with: .opacity))
@@ -189,10 +190,11 @@ struct ProductCardView: View {
     let product: Product
     let selectedAllergens: Set<Allergen>
     let matchDetails: [ScannerViewModel.AllergenMatchDetail]
+    let allergenStatuses: [Allergen: Bool]
 
     // Updated isSafe logic: product.allergens disjoint with selectedAllergens AND no matchDetails
     var isSafe: Bool {
-        Set(product.allergens).isDisjoint(with: selectedAllergens) && matchDetails.isEmpty
+        !allergenStatuses.values.contains(false)
     }
 
     var body: some View {
@@ -239,6 +241,21 @@ struct ProductCardView: View {
                                 Text("• \(allergen.displayName)")
                                     .font(.subheadline)
                             }
+                        }
+                    }
+                }
+
+                if !allergenStatuses.isEmpty {
+                    VStack(alignment: .leading, spacing: 4) {
+                        Text("Selected Allergen Results:")
+                            .font(.subheadline.weight(.semibold))
+                        ForEach(Array(selectedAllergens).sorted { $0.displayName < $1.displayName }) { allergen in
+                            HStack {
+                                Image(systemName: allergenStatuses[allergen] == true ? "checkmark.circle" : "xmark.octagon")
+                                    .foregroundColor(allergenStatuses[allergen] == true ? .green : .red)
+                                Text(allergen.displayName)
+                            }
+                            .font(.subheadline)
                         }
                     }
                 }
