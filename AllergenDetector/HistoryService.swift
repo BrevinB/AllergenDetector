@@ -10,12 +10,22 @@ import Combine
 class HistoryService: ObservableObject {
     static let shared = HistoryService()
 
-    @Published var records: [ScanRecord] = []
+    @Published var records: [ScanRecord] = [] {
+        didSet { save() }
+    }
 
     private let defaultsKey = "ScanHistory"
+    private let cloud = NSUbiquitousKeyValueStore.default
 
     private init() {
+        cloud.synchronize()
         load()
+        NotificationCenter.default.addObserver(
+            self,
+            selector: #selector(iCloudChanged(_:)),
+            name: NSUbiquitousKeyValueStore.didChangeExternallyNotification,
+            object: cloud
+        )
     }
 
     /// Adds a new scan record to history (at the front) and persists it.
@@ -27,23 +37,29 @@ class HistoryService: ObservableObject {
             return
         }
         records.insert(record, at: 0)
-        save()
     }
 
-    /// Loads saved history from UserDefaults. If none exists, starts with an empty array.
+    /// Loads saved history from iCloud or UserDefaults. If none exists, starts with an empty array.
     private func load() {
-        guard let data = UserDefaults.standard.data(forKey: defaultsKey),
-              let saved = try? JSONDecoder().decode([ScanRecord].self, from: data) else {
-            records = []
+        if let data = cloud.data(forKey: defaultsKey),
+           let saved = try? JSONDecoder().decode([ScanRecord].self, from: data) {
+            records = saved
             return
         }
-        records = saved
+        if let data = UserDefaults.standard.data(forKey: defaultsKey),
+           let saved = try? JSONDecoder().decode([ScanRecord].self, from: data) {
+            records = saved
+        } else {
+            records = []
+        }
     }
 
-    /// Encodes the current records array and writes it to UserDefaults.
+    /// Encodes the current records array and writes it to UserDefaults and iCloud.
     private func save() {
         if let data = try? JSONEncoder().encode(records) {
             UserDefaults.standard.set(data, forKey: defaultsKey)
+            cloud.set(data, forKey: defaultsKey)
+            cloud.synchronize()
         }
     }
 
@@ -78,5 +94,15 @@ class HistoryService: ObservableObject {
                 DispatchQueue.main.async { completion(nil) }
             }
         }
+    }
+
+    @objc private func iCloudChanged(_ notification: Notification) {
+        guard let userInfo = notification.userInfo,
+              let keys = userInfo[NSUbiquitousKeyValueStoreChangedKeysKey] as? [String],
+              keys.contains(defaultsKey),
+              let data = cloud.data(forKey: defaultsKey),
+              let saved = try? JSONDecoder().decode([ScanRecord].self, from: data),
+              saved != records else { return }
+        records = saved
     }
 }
