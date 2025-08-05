@@ -13,6 +13,7 @@ struct ContentView: View {
     @State private var isShowingScanner = false
     @State private var pulse = false  // For button pulse animation
     @State private var manualBarcode = ""
+    @State private var scanStatusMessage = "Align the barcode within the frame"
 
     // MARK: - Subviews for Animations
 
@@ -89,6 +90,15 @@ struct ContentView: View {
         }
     }
 
+    private func startScanFeedback() {
+        scanStatusMessage = "Align the barcode within the frame"
+        DispatchQueue.main.asyncAfter(deadline: .now() + 5) {
+            if isShowingScanner {
+                scanStatusMessage = "No barcode detected. Try again or enter the code manually."
+            }
+        }
+    }
+
     var body: some View {
         NavigationView {
             VStack(spacing: 24) {
@@ -126,15 +136,29 @@ struct ContentView: View {
                     Color.black.opacity(0.2)
                         .ignoresSafeArea()
                     VStack(spacing: 0) {
-                        BarcodeScannerView { code in
-                            viewModel.handleBarcode(
-                                code,
-                                selectedAllergens: settings.selectedAllergens,
-                                customAllergens: settings.customAllergens
-                            )
-                            isShowingScanner = false
+                        ZStack(alignment: .bottom) {
+                            BarcodeScannerView { code in
+                                scanStatusMessage = "Barcode detected..."
+                                let generator = UINotificationFeedbackGenerator()
+                                generator.notificationOccurred(.success)
+                                viewModel.handleBarcode(
+                                    code,
+                                    selectedAllergens: settings.selectedAllergens,
+                                    customAllergens: settings.customAllergens
+                                )
+                                isShowingScanner = false
+                            }
+                            .frame(height: 350)
+
+                            Text(scanStatusMessage)
+                                .font(.headline)
+                                .foregroundColor(.white)
+                                .padding(.vertical, 8)
+                                .padding(.horizontal, 12)
+                                .background(Color.black.opacity(0.6))
+                                .cornerRadius(8)
+                                .padding(.bottom, 20)
                         }
-                        .frame(height: 350)
 
                         VStack(spacing: 12) {
                             TextField("Enter barcode number", text: $manualBarcode)
@@ -174,6 +198,7 @@ struct ContentView: View {
                     }
                     .clipShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
                     .padding()
+                    .onAppear(perform: startScanFeedback)
                 }
             }
             .alert(isPresented: $viewModel.showAlert) {
