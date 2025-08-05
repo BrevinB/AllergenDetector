@@ -35,8 +35,8 @@ struct AllergenSelectionView: View {
             }
 
             Section(header: Text("Custom Allergens")) {
-                ForEach(settings.customAllergens, id: \.self) { allergen in
-                    Text(allergen)
+                ForEach($settings.customAllergens) { $custom in
+                    Toggle(custom.name, isOn: $custom.isEnabled)
                 }
                 .onDelete { indexSet in
                     settings.customAllergens.remove(atOffsets: indexSet)
@@ -47,7 +47,7 @@ struct AllergenSelectionView: View {
                     Button("Add") {
                         let trimmed = newCustom.trimmingCharacters(in: .whitespacesAndNewlines)
                         guard !trimmed.isEmpty else { return }
-                        settings.customAllergens.append(trimmed)
+                        settings.customAllergens.append(CustomAllergen(name: trimmed))
                         newCustom = ""
                     }
                 }

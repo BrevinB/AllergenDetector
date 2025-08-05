@@ -18,7 +18,7 @@ struct ContentView: View {
 
     @ViewBuilder
     private var allergenChipsView: some View {
-        if !settings.selectedAllergens.isEmpty || !settings.customAllergens.isEmpty {
+        if !settings.selectedAllergens.isEmpty || !settings.activeCustomAllergenNames.isEmpty {
             ScrollView(.horizontal, showsIndicators: false) {
                 HStack(spacing: 8) {
                     ForEach(Array(settings.selectedAllergens)) { allergen in
@@ -31,7 +31,7 @@ struct ContentView: View {
                             .clipShape(Capsule())
                             .transition(.scale.combined(with: .opacity))
                     }
-                    ForEach(settings.customAllergens, id: \.self) { custom in
+                    ForEach(settings.activeCustomAllergenNames, id: \.self) { custom in
                         Text(custom)
                             .font(.subheadline.weight(.semibold))
                             .padding(.horizontal, 12)
@@ -45,7 +45,7 @@ struct ContentView: View {
                 .padding(.horizontal)
                 .animation(
                     .easeInOut(duration: 0.3),
-                    value: settings.selectedAllergens.count + settings.customAllergens.count
+                    value: settings.selectedAllergens.count + settings.activeCustomAllergenNames.count
                 )
             }
         } else {
@@ -130,7 +130,7 @@ struct ContentView: View {
                             viewModel.handleBarcode(
                                 code,
                                 selectedAllergens: settings.selectedAllergens,
-                                customAllergens: settings.customAllergens
+                                customAllergens: settings.activeCustomAllergenNames
                             )
                             isShowingScanner = false
                         }
@@ -151,7 +151,8 @@ struct ContentView: View {
                                     guard !manualBarcode.isEmpty else { return }
                                     viewModel.handleBarcode(
                                         manualBarcode,
-                                        selectedAllergens: settings.selectedAllergens
+                                        selectedAllergens: settings.selectedAllergens,
+                                        customAllergens: settings.activeCustomAllergenNames
                                     )
                                     manualBarcode = ""
                                     isShowingScanner = false
