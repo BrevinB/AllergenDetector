@@ -198,6 +198,30 @@ struct ContentView: View {
                     pulse.toggle()
                 }
             }
+            .onChange(of: settings.selectedAllergens) { _ in
+                for key in Array(viewModel.allergenStatuses.keys) {
+                    if !settings.selectedAllergens.contains(key) {
+                        viewModel.allergenStatuses.removeValue(forKey: key)
+                    }
+                }
+                viewModel.matchDetails.removeAll { detail in
+                    if let allergen = detail.allergen {
+                        return !settings.selectedAllergens.contains(allergen)
+                    }
+                    return false
+                }
+            }
+            .onChange(of: settings.customAllergens) { _ in
+                let active = settings.activeCustomAllergenNames
+                for key in Array(viewModel.customAllergenStatuses.keys) {
+                    if !active.contains(key) {
+                        viewModel.customAllergenStatuses.removeValue(forKey: key)
+                    }
+                }
+                viewModel.matchDetails.removeAll { detail in
+                    detail.allergen == nil && !active.contains(detail.allergenName)
+                }
+            }
         }
     }
 }
