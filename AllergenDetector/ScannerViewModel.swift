@@ -12,6 +12,7 @@ import SwiftUI
 class ScannerViewModel: ObservableObject {
     struct AllergenMatchDetail {
         let ingredient: String
+        let allergen: Allergen?
         let allergenName: String
         let explanation: String
     }
@@ -171,7 +172,7 @@ class ScannerViewModel: ObservableObject {
             /*
             let key = ingredient.lowercased()
             if let mapped = Self.ingredientToAllergen[key], selectedAllergens.contains(mapped.allergen) {
-                let detail = AllergenMatchDetail(ingredient: ingredient, allergen: mapped.allergen, explanation: mapped.explanation)
+                let detail = AllergenMatchDetail(ingredient: ingredient, allergen: mapped.allergen, allergenName: mapped.allergen.displayName, explanation: mapped.explanation)
                 detailsArray.append(detail)
             }
             */
@@ -181,6 +182,7 @@ class ScannerViewModel: ObservableObject {
                     if !detailsArray.contains(where: { $0.ingredient == ingredient && $0.allergenName == mapped.allergen.displayName }) {
                         let detail = AllergenMatchDetail(
                             ingredient: ingredient,
+                            allergen: mapped.allergen,
                             allergenName: mapped.allergen.displayName,
                             explanation: mapped.explanation
                         )
@@ -195,6 +197,7 @@ class ScannerViewModel: ObservableObject {
                     if !detailsArray.contains(where: { $0.ingredient == ingredient && $0.allergenName.lowercased() == customLower }) {
                         let detail = AllergenMatchDetail(
                             ingredient: ingredient,
+                            allergen: nil,
                             allergenName: custom,
                             explanation: "Custom allergen match"
                         )
@@ -206,7 +209,7 @@ class ScannerViewModel: ObservableObject {
         
         // Determine which allergens were flagged either from the product's
         // reported allergens or via ingredient matching
-        let ingredientAllergens = Set(detailsArray.map { $0.allergen })
+        let ingredientAllergens = Set(detailsArray.compactMap { $0.allergen })
         let flaggedAllergens = intersection.union(ingredientAllergens)
 
         // Build status dictionary for each selected allergen
