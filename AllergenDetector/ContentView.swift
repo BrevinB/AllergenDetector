@@ -206,10 +206,12 @@ struct ProductCardView: View {
     let selectedAllergens: Set<Allergen>
     let matchDetails: [ScannerViewModel.AllergenMatchDetail]
     let allergenStatuses: [Allergen: Bool]
-
-    // Updated isSafe logic: product.allergens disjoint with selectedAllergens AND no matchDetails
+    
+    // Product is safe only if no selected allergens were flagged and no custom
+    // allergens were matched in the ingredients list.
     var isSafe: Bool {
-        !allergenStatuses.values.contains(false)
+        let hasCustomMatch = matchDetails.contains { $0.allergen == nil }
+        return !allergenStatuses.values.contains(false) && !hasCustomMatch
     }
 
     var body: some View {

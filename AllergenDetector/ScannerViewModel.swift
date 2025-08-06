@@ -218,7 +218,10 @@ class ScannerViewModel: ObservableObject {
             statusDict[allergen] = !flaggedAllergens.contains(allergen)
         }
 
-        let isSafe = !statusDict.values.contains(false)
+        // If any custom allergen was matched, treat the product as unsafe even if
+        // all built-in allergens passed.
+        let hasCustomMatch = detailsArray.contains { $0.allergen == nil }
+        let isSafe = !statusDict.values.contains(false) && !hasCustomMatch
 
         self.matchDetails = detailsArray
         self.allergenStatuses = statusDict
