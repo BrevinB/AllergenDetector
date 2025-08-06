@@ -78,7 +78,8 @@ struct ContentView: View {
                 product: product,
                 selectedAllergens: settings.selectedAllergens,
                 matchDetails: viewModel.matchDetails,
-                allergenStatuses: viewModel.allergenStatuses
+                allergenStatuses: viewModel.allergenStatuses,
+                customAllergenStatuses: viewModel.customAllergenStatuses
             )
             .padding(.horizontal)
             .transition(.move(edge: .bottom).combined(with: .opacity))
@@ -206,11 +207,12 @@ struct ProductCardView: View {
     let selectedAllergens: Set<Allergen>
     let matchDetails: [ScannerViewModel.AllergenMatchDetail]
     let allergenStatuses: [Allergen: Bool]
+    let customAllergenStatuses: [String: Bool]
     
     // Product is safe only if no selected allergens were flagged and no custom
     // allergens were matched in the ingredients list.
     var isSafe: Bool {
-        let hasCustomMatch = matchDetails.contains { $0.allergen == nil }
+        let hasCustomMatch = customAllergenStatuses.values.contains(false)
         return !allergenStatuses.values.contains(false) && !hasCustomMatch
     }
 
@@ -267,7 +269,7 @@ struct ProductCardView: View {
                     }
                 }
 
-                if !allergenStatuses.isEmpty {
+                if !allergenStatuses.isEmpty || !customAllergenStatuses.isEmpty {
                     VStack(alignment: .leading, spacing: 4) {
                         Text("Selected Allergen Results:")
                             .font(.subheadline.weight(.semibold))
@@ -276,6 +278,15 @@ struct ProductCardView: View {
                                 Image(systemName: allergenStatuses[allergen] == true ? "checkmark.circle" : "xmark.octagon")
                                     .foregroundColor(allergenStatuses[allergen] == true ? .green : .red)
                                 Text(allergen.displayName)
+                            }
+                            .font(.subheadline)
+                        }
+                        ForEach(customAllergenStatuses.keys.sorted(), id: \.self) { name in
+                            HStack {
+                                let safe = customAllergenStatuses[name] == true
+                                Image(systemName: safe ? "checkmark.circle" : "xmark.octagon")
+                                    .foregroundColor(safe ? .green : .red)
+                                Text(name)
                             }
                             .font(.subheadline)
                         }
