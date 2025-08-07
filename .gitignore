@@ -1,0 +1,80 @@
+# macOS system files
+.DS_Store
+
+# Xcode
+DerivedData/
+build/
+*.pbxuser
+!default.pbxuser
+*.mode1v3
+!default.mode1v3
+*.mode2v3
+!default.mode2v3
+*.perspectivev3
+!default.perspectivev3
+xcuserdata/
+
+# Xcode Workspace and User Data
+project.xcworkspace/
+!project.xcworkspace/contents.xcworkspacedata
+*.xcuserstate
+
+# SwiftPM
+.build/
+.swiftpm/xcode/package.xcworkspace/
+
+# CocoaPods
+Pods/
+Podfile.lock
+*.xcworkspace
+
+# Carthage
+Carthage/Build/
+
+# Accio
+Dependencies/
+.accio/
+
+# Fastlane
+fastlane/report.xml
+fastlane/Preview.html
+fastlane/screenshots/**/*.png
+fastlane/test_output
+
+# Code coverage
+*.xccovreport
+*.xccovarchive
+
+# Provisioning profiles
+*.mobileprovision
+
+# xcresult bundles (Xcode test results)
+*.xcresult
+
+# Archives
+*.xcarchive
+
+# Playground
+timeline.xctimeline
+playground.xcworkspace
+
+# Swift Package Manager binary artifacts
+Artifacts/
+
+# Firebase
+GoogleService-Info.plist
+
+# Realm
+*.realm
+*.realm.lock
+
+# Temporary files
+*.tmp
+*.swp
+
+# Other IDEs
+.idea/
+.vscode/
+
+# Symbol graphs
+*.symbols.json
