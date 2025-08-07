@@ -118,6 +118,7 @@ class ScannerViewModel: ObservableObject {
     @Published var showAlert = false
     @Published var matchDetails: [AllergenMatchDetail] = []
     @Published var allergenStatuses: [Allergen: Bool] = [:]
+    @Published var customAllergenStatuses: [String: Bool] = [:]
 
     func handleBarcode(
         _ code: String,
@@ -218,10 +219,23 @@ class ScannerViewModel: ObservableObject {
             statusDict[allergen] = !flaggedAllergens.contains(allergen)
         }
 
-        let isSafe = !statusDict.values.contains(false)
+        // Build status dictionary for each custom allergen
+        var customStatus: [String: Bool] = [:]
+        for custom in customAllergens {
+            let matched = detailsArray.contains {
+                $0.allergen == nil && $0.allergenName.lowercased() == custom.lowercased()
+            }
+            customStatus[custom] = !matched
+        }
+
+        // If any custom allergen was matched, treat the product as unsafe even if
+        // all built-in allergens passed.
+        let hasCustomMatch = customStatus.values.contains(false)
+        let isSafe = !statusDict.values.contains(false) && !hasCustomMatch
 
         self.matchDetails = detailsArray
         self.allergenStatuses = statusDict
+        self.customAllergenStatuses = customStatus
 
         // Compose alert message summarizing safety
         if isSafe {
@@ -242,6 +256,17 @@ class ScannerViewModel: ObservableObject {
             }
             .joined(separator: "\n")
         alertMessage! += "\n" + statusLines
+
+        if !customStatus.isEmpty {
+            let customLines = customAllergens
+                .sorted { $0.lowercased() < $1.lowercased() }
+                .map { name in
+                    let safe = customStatus[name] ?? true
+                    return "\(name): " + (safe ? "Safe" : "Not Safe")
+                }
+                .joined(separator: "\n")
+            alertMessage! += "\n" + customLines
+        }
 
         if !detailsArray.isEmpty {
             alertMessage! += "\nDetails:"
