@@ -42,6 +42,9 @@ struct BarcodeScannerView: UIViewRepresentable {
         /// Keep a reference so we can draw a bounding box on top of it
         var previewLayer: AVCaptureVideoPreviewLayer?
 
+        /// Flag to ensure we only report a barcode once per session
+        private var didCaptureCode = false
+
         /// A shape layer to draw the bounding box
         private let boundingBoxLayer: CAShapeLayer = {
             let layer = CAShapeLayer()
@@ -89,9 +92,10 @@ struct BarcodeScannerView: UIViewRepresentable {
         func startSession() {
             sessionQueue.async { [weak self] in
                 guard let self = self else { return }
+                self.didCaptureCode = false
                 if !self.captureSession.isRunning {
                     self.captureSession.startRunning()
-                    
+
                     DispatchQueue.main.async {
                         if let preview = self.previewLayer {
                             // Make sure we only add it once
@@ -120,14 +124,15 @@ struct BarcodeScannerView: UIViewRepresentable {
         func metadataOutput(_ output: AVCaptureMetadataOutput,
                             didOutput metadataObjects: [AVMetadataObject],
                             from connection: AVCaptureConnection) {
-            if let firstObject = metadataObjects.first as? AVMetadataMachineReadableCodeObject,
-               let barcode = firstObject.stringValue {
-                // Once we get a code, we pass it up to the SwiftUI closure:
-                parent.completion(barcode)
-
-                // If you only want one read per scan, you can also call stopSession() here,
-                // then restart later (not strictly required).
+            guard !didCaptureCode,
+                  let firstObject = metadataObjects.first as? AVMetadataMachineReadableCodeObject,
+                  let barcode = firstObject.stringValue else {
+                return
             }
+
+            didCaptureCode = true
+            parent.completion(barcode)
+            stopSession()
         }
         
         // Draw a green dashed rectangle around the detected barcode
