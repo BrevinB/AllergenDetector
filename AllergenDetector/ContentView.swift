@@ -19,35 +19,28 @@ struct ContentView: View {
 
     @ViewBuilder
     private var allergenChipsView: some View {
-        if !settings.selectedAllergens.isEmpty || !settings.customAllergens.isEmpty {
+        if !settings.selectedAllergens.isEmpty || !settings.activeCustomAllergenNames.isEmpty {
             ScrollView(.horizontal, showsIndicators: false) {
                 HStack(spacing: 8) {
-                    ForEach(Array(settings.selectedAllergens)) { allergen in
+                    ForEach(settings.selectedAllergens.sorted(by: { $0.displayName < $1.displayName })) { allergen in
                         Text(allergen.displayName)
                             .font(.subheadline.weight(.semibold))
                             .padding(.horizontal, 12)
                             .padding(.vertical, 6)
                             .background(Color.secondary.opacity(0.1))
-                            .foregroundColor(.primary)
                             .clipShape(Capsule())
-                            .transition(.scale.combined(with: .opacity))
                     }
-                    ForEach(settings.customAllergens, id: \.self) { custom in
+
+                    ForEach(settings.activeCustomAllergenNames.sorted(), id: \.self) { custom in
                         Text(custom)
                             .font(.subheadline.weight(.semibold))
                             .padding(.horizontal, 12)
                             .padding(.vertical, 6)
                             .background(Color.secondary.opacity(0.1))
-                            .foregroundColor(.primary)
                             .clipShape(Capsule())
-                            .transition(.scale.combined(with: .opacity))
                     }
                 }
                 .padding(.horizontal)
-                .animation(
-                    .easeInOut(duration: 0.3),
-                    value: settings.selectedAllergens.count + settings.customAllergens.count
-                )
             }
         } else {
             Text("No allergens selected")
@@ -79,7 +72,8 @@ struct ContentView: View {
                 product: product,
                 selectedAllergens: settings.selectedAllergens,
                 matchDetails: viewModel.matchDetails,
-                allergenStatuses: viewModel.allergenStatuses
+                allergenStatuses: viewModel.allergenStatuses,
+                customAllergenStatuses: viewModel.customAllergenStatuses
             )
             .padding(.horizontal)
             .transition(.move(edge: .bottom).combined(with: .opacity))
@@ -96,6 +90,23 @@ struct ContentView: View {
             if isShowingScanner {
                 scanStatusMessage = "No barcode detected. Try again or enter the code manually."
             }
+        }
+    }
+
+    private func handleSelectedAllergensChange() {
+        for key in Array(viewModel.allergenStatuses.keys) {
+            if !settings.selectedAllergens.contains(key) {
+                viewModel.allergenStatuses.removeValue(forKey: key)
+            }
+        }
+        viewModel.matchDetails.removeAll { detail in
+            let contains: Bool
+            if let allergen = detail.allergen {
+                contains = !settings.selectedAllergens.contains(allergen)
+            } else {
+                contains = false
+            }
+            return contains
         }
     }
 
@@ -132,74 +143,14 @@ struct ContentView: View {
                 }
             }
             .sheet(isPresented: $isShowingScanner) {
-                ZStack {
-                    Color.black.opacity(0.2)
-                        .ignoresSafeArea()
-                    VStack(spacing: 0) {
-                        ZStack(alignment: .bottom) {
-                            BarcodeScannerView { code in
-                                scanStatusMessage = "Barcode detected..."
-                                let generator = UINotificationFeedbackGenerator()
-                                generator.notificationOccurred(.success)
-                                viewModel.handleBarcode(
-                                    code,
-                                    selectedAllergens: settings.selectedAllergens,
-                                    customAllergens: settings.customAllergens
-                                )
-                                isShowingScanner = false
-                            }
-                            .frame(height: 350)
-
-                            Text(scanStatusMessage)
-                                .font(.headline)
-                                .foregroundColor(.white)
-                                .padding(.vertical, 8)
-                                .padding(.horizontal, 12)
-                                .background(Color.black.opacity(0.6))
-                                .cornerRadius(8)
-                                .padding(.bottom, 20)
-                        }
-
-                        VStack(spacing: 12) {
-                            TextField("Enter barcode number", text: $manualBarcode)
-                                .textFieldStyle(RoundedBorderTextFieldStyle())
-                                .keyboardType(.numberPad)
-                                .padding(.horizontal)
-                            Text("Barcodes are numeric and usually 12 digits long")
-                                .font(.footnote)
-                                .foregroundColor(.secondary)
-
-                            HStack {
-                                Spacer()
-                                Button("Submit") {
-                                    guard !manualBarcode.isEmpty else { return }
-                                    viewModel.handleBarcode(
-                                        manualBarcode,
-                                        selectedAllergens: settings.selectedAllergens
-                                    )
-                                    manualBarcode = ""
-                                    isShowingScanner = false
-                                }
-                                .buttonStyle(.borderedProminent)
-                                Spacer()
-                                Button(role: .cancel) {
-                                    isShowingScanner = false
-                                } label: {
-                                    Label("Cancel", systemImage: "xmark.circle")
-                                }
-                                .font(.headline)
-                                .foregroundColor(.primary)
-                                Spacer()
-                            }
-                        }
-                        .padding(.vertical, 16)
-                        .frame(maxWidth: .infinity)
-                        .background(.ultraThinMaterial)
-                    }
-                    .clipShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
-                    .padding()
-                    .onAppear(perform: startScanFeedback)
-                }
+                BarcodeScannerSheet(
+                    isShowing: $isShowingScanner,
+                    manualBarcode: $manualBarcode,
+                    viewModel: viewModel,
+                    scanStatusMessage: scanStatusMessage,
+                    onScanStatusUpdate: startScanFeedback
+                )
+                .environmentObject(settings)
             }
             .alert(isPresented: $viewModel.showAlert) {
                 Alert(
@@ -221,6 +172,20 @@ struct ContentView: View {
                     pulse.toggle()
                 }
             }
+            .onChange(of: settings.selectedAllergens) { _ in
+                handleSelectedAllergensChange()
+            }
+            .onChange(of: settings.customAllergens) { _ in
+                let active = settings.activeCustomAllergenNames
+                for key in Array(viewModel.customAllergenStatuses.keys) {
+                    if !active.contains(key) {
+                        viewModel.customAllergenStatuses.removeValue(forKey: key)
+                    }
+                }
+                viewModel.matchDetails.removeAll { detail in
+                    detail.allergen == nil && !active.contains(detail.allergenName)
+                }
+            }
         }
     }
 }
@@ -230,10 +195,13 @@ struct ProductCardView: View {
     let selectedAllergens: Set<Allergen>
     let matchDetails: [ScannerViewModel.AllergenMatchDetail]
     let allergenStatuses: [Allergen: Bool]
-
-    // Updated isSafe logic: product.allergens disjoint with selectedAllergens AND no matchDetails
+    let customAllergenStatuses: [String: Bool]
+    
+    // Product is safe only if no selected allergens were flagged and no custom
+    // allergens were matched in the ingredients list.
     var isSafe: Bool {
-        !allergenStatuses.values.contains(false)
+        let hasCustomMatch = customAllergenStatuses.values.contains(false)
+        return !allergenStatuses.values.contains(false) && !hasCustomMatch
     }
 
     var body: some View {
@@ -289,7 +257,7 @@ struct ProductCardView: View {
                     }
                 }
 
-                if !allergenStatuses.isEmpty {
+                if !allergenStatuses.isEmpty || !customAllergenStatuses.isEmpty {
                     VStack(alignment: .leading, spacing: 4) {
                         Text("Selected Allergen Results:")
                             .font(.subheadline.weight(.semibold))
@@ -298,6 +266,15 @@ struct ProductCardView: View {
                                 Image(systemName: allergenStatuses[allergen] == true ? "checkmark.circle" : "xmark.octagon")
                                     .foregroundColor(allergenStatuses[allergen] == true ? .green : .red)
                                 Text(allergen.displayName)
+                            }
+                            .font(.subheadline)
+                        }
+                        ForEach(customAllergenStatuses.keys.sorted(), id: \.self) { name in
+                            HStack {
+                                let safe = customAllergenStatuses[name] == true
+                                Image(systemName: safe ? "checkmark.circle" : "xmark.octagon")
+                                    .foregroundColor(safe ? .green : .red)
+                                Text(name)
                             }
                             .font(.subheadline)
                         }

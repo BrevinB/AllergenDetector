@@ -35,8 +35,8 @@ struct AllergenSelectionView: View {
             }
 
             Section(header: Text("Custom Allergens")) {
-                ForEach(settings.customAllergens, id: \.self) { allergen in
-                    Text(allergen)
+                ForEach(settings.customAllergens) { allergen in
+                    Toggle(allergen.name, isOn: binding(for: allergen))
                 }
                 .onDelete { indexSet in
                     settings.customAllergens.remove(atOffsets: indexSet)
@@ -47,7 +47,7 @@ struct AllergenSelectionView: View {
                     Button("Add") {
                         let trimmed = newCustom.trimmingCharacters(in: .whitespacesAndNewlines)
                         guard !trimmed.isEmpty else { return }
-                        settings.customAllergens.append(trimmed)
+                        settings.customAllergens.append(CustomAllergen(name: trimmed))
                         newCustom = ""
                     }
                 }
@@ -64,6 +64,13 @@ struct AllergenSelectionView: View {
             }
         }
         .navigationBarTitleDisplayMode(.inline)
+    }
+
+    private func binding(for allergen: CustomAllergen) -> Binding<Bool> {
+        guard let index = settings.customAllergens.firstIndex(of: allergen) else {
+            return .constant(allergen.isEnabled)
+        }
+        return $settings.customAllergens[index].isEnabled
     }
 }
 

@@ -14,7 +14,7 @@ class UserSettings: ObservableObject {
             save()
         }
     }
-    @Published var customAllergens: [String] {
+    @Published var customAllergens: [CustomAllergen] {
         didSet {
             saveCustom()
         }
@@ -31,7 +31,8 @@ class UserSettings: ObservableObject {
             selectedAllergens = []
         }
 
-        if let array = UserDefaults.standard.stringArray(forKey: customKey) {
+        if let data = UserDefaults.standard.data(forKey: customKey),
+           let array = try? JSONDecoder().decode([CustomAllergen].self, from: data) {
             customAllergens = array
         } else {
             customAllergens = []
@@ -45,6 +46,12 @@ class UserSettings: ObservableObject {
     }
 
     private func saveCustom() {
-        UserDefaults.standard.set(customAllergens, forKey: customKey)
+        if let data = try? JSONEncoder().encode(customAllergens) {
+            UserDefaults.standard.set(data, forKey: customKey)
+        }
+    }
+
+    var activeCustomAllergenNames: [String] {
+        customAllergens.filter { $0.isEnabled }.map { $0.name }
     }
 }
