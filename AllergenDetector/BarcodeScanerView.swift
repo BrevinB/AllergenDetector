@@ -17,23 +17,6 @@ struct BarcodeScannerView: UIViewRepresentable {
         previewLayer.frame = view.layer.bounds
         view.layer.addSublayer(previewLayer)
 
-        // Add a "Scanning..." overlay label at the bottom
-        let scanningLabel = UILabel()
-        scanningLabel.text = "Scanning..."
-        scanningLabel.textColor = .white
-        scanningLabel.backgroundColor = UIColor.black.withAlphaComponent(0.5)
-        scanningLabel.textAlignment = .center
-        scanningLabel.translatesAutoresizingMaskIntoConstraints = false
-        view.addSubview(scanningLabel)
-
-        // Constraints for the label
-        NSLayoutConstraint.activate([
-            scanningLabel.centerXAnchor.constraint(equalTo: view.centerXAnchor),
-            scanningLabel.bottomAnchor.constraint(equalTo: view.bottomAnchor, constant: -20),
-            scanningLabel.widthAnchor.constraint(equalToConstant: 150),
-            scanningLabel.heightAnchor.constraint(equalToConstant: 40)
-        ])
-
         // Finally, start the session on the sessionQueue:
         context.coordinator.startSession()
 

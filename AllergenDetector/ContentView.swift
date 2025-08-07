@@ -13,6 +13,7 @@ struct ContentView: View {
     @State private var isShowingScanner = false
     @State private var pulse = false  // For button pulse animation
     @State private var manualBarcode = ""
+    @State private var scanStatusMessage = "Align the barcode within the frame"
 
     // MARK: - Subviews for Animations
 
@@ -21,32 +22,25 @@ struct ContentView: View {
         if !settings.selectedAllergens.isEmpty || !settings.activeCustomAllergenNames.isEmpty {
             ScrollView(.horizontal, showsIndicators: false) {
                 HStack(spacing: 8) {
-                    ForEach(Array(settings.selectedAllergens)) { allergen in
+                    ForEach(settings.selectedAllergens.sorted(by: { $0.displayName < $1.displayName })) { allergen in
                         Text(allergen.displayName)
                             .font(.subheadline.weight(.semibold))
                             .padding(.horizontal, 12)
                             .padding(.vertical, 6)
                             .background(Color.secondary.opacity(0.1))
-                            .foregroundColor(.primary)
                             .clipShape(Capsule())
-                            .transition(.scale.combined(with: .opacity))
                     }
-                    ForEach(settings.activeCustomAllergenNames, id: \.self) { custom in
+
+                    ForEach(settings.activeCustomAllergenNames.sorted(), id: \.self) { custom in
                         Text(custom)
                             .font(.subheadline.weight(.semibold))
                             .padding(.horizontal, 12)
                             .padding(.vertical, 6)
                             .background(Color.secondary.opacity(0.1))
-                            .foregroundColor(.primary)
                             .clipShape(Capsule())
-                            .transition(.scale.combined(with: .opacity))
                     }
                 }
                 .padding(.horizontal)
-                .animation(
-                    .easeInOut(duration: 0.3),
-                    value: settings.selectedAllergens.count + settings.activeCustomAllergenNames.count
-                )
             }
         } else {
             Text("No allergens selected")
@@ -90,6 +84,32 @@ struct ContentView: View {
         }
     }
 
+    private func startScanFeedback() {
+        scanStatusMessage = "Align the barcode within the frame"
+        DispatchQueue.main.asyncAfter(deadline: .now() + 5) {
+            if isShowingScanner {
+                scanStatusMessage = "No barcode detected. Try again or enter the code manually."
+            }
+        }
+    }
+
+    private func handleSelectedAllergensChange() {
+        for key in Array(viewModel.allergenStatuses.keys) {
+            if !settings.selectedAllergens.contains(key) {
+                viewModel.allergenStatuses.removeValue(forKey: key)
+            }
+        }
+        viewModel.matchDetails.removeAll { detail in
+            let contains: Bool
+            if let allergen = detail.allergen {
+                contains = !settings.selectedAllergens.contains(allergen)
+            } else {
+                contains = false
+            }
+            return contains
+        }
+    }
+
     var body: some View {
         NavigationView {
             VStack(spacing: 24) {
@@ -123,60 +143,14 @@ struct ContentView: View {
                 }
             }
             .sheet(isPresented: $isShowingScanner) {
-                ZStack {
-                    Color.black.opacity(0.2)
-                        .ignoresSafeArea()
-                    VStack(spacing: 0) {
-                        BarcodeScannerView { code in
-                            viewModel.handleBarcode(
-                                code,
-                                selectedAllergens: settings.selectedAllergens,
-                                customAllergens: settings.activeCustomAllergenNames
-                            )
-                            isShowingScanner = false
-                        }
-                        .frame(height: 350)
-
-                        VStack(spacing: 12) {
-                            TextField("Enter barcode number", text: $manualBarcode)
-                                .textFieldStyle(RoundedBorderTextFieldStyle())
-                                .keyboardType(.numberPad)
-                                .padding(.horizontal)
-                            Text("Barcodes are numeric and usually 12 digits long")
-                                .font(.footnote)
-                                .foregroundColor(.secondary)
-
-                            HStack {
-                                Spacer()
-                                Button("Submit") {
-                                    guard !manualBarcode.isEmpty else { return }
-                                    viewModel.handleBarcode(
-                                        manualBarcode,
-                                        selectedAllergens: settings.selectedAllergens,
-                                        customAllergens: settings.activeCustomAllergenNames
-                                    )
-                                    manualBarcode = ""
-                                    isShowingScanner = false
-                                }
-                                .buttonStyle(.borderedProminent)
-                                Spacer()
-                                Button(role: .cancel) {
-                                    isShowingScanner = false
-                                } label: {
-                                    Label("Cancel", systemImage: "xmark.circle")
-                                }
-                                .font(.headline)
-                                .foregroundColor(.primary)
-                                Spacer()
-                            }
-                        }
-                        .padding(.vertical, 16)
-                        .frame(maxWidth: .infinity)
-                        .background(.ultraThinMaterial)
-                    }
-                    .clipShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
-                    .padding()
-                }
+                BarcodeScannerSheet(
+                    isShowing: $isShowingScanner,
+                    manualBarcode: $manualBarcode,
+                    viewModel: viewModel,
+                    scanStatusMessage: scanStatusMessage,
+                    onScanStatusUpdate: startScanFeedback
+                )
+                .environmentObject(settings)
             }
             .alert(isPresented: $viewModel.showAlert) {
                 Alert(
@@ -199,17 +173,7 @@ struct ContentView: View {
                 }
             }
             .onChange(of: settings.selectedAllergens) { _ in
-                for key in Array(viewModel.allergenStatuses.keys) {
-                    if !settings.selectedAllergens.contains(key) {
-                        viewModel.allergenStatuses.removeValue(forKey: key)
-                    }
-                }
-                viewModel.matchDetails.removeAll { detail in
-                    if let allergen = detail.allergen {
-                        return !settings.selectedAllergens.contains(allergen)
-                    }
-                    return false
-                }
+                handleSelectedAllergensChange()
             }
             .onChange(of: settings.customAllergens) { _ in
                 let active = settings.activeCustomAllergenNames
