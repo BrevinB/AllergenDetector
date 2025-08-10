@@ -45,8 +45,20 @@ struct HistoryView: View {
                                 .foregroundColor(.secondary)
                         }
                         Spacer()
-                        Image(systemName: record.isSafe ? "checkmark.seal.fill" : "xmark.shield.fill")
-                            .foregroundColor(record.isSafe ? .green : .red)
+                        let (icon, color): (String, Color)
+                        switch record.safety {
+                        case .safe:
+                            icon = "checkmark.seal.fill"
+                            color = .green
+                        case .unsafe:
+                            icon = "xmark.shield.fill"
+                            color = .red
+                        case .unknown:
+                            icon = "questionmark.diamond.fill"
+                            color = .yellow
+                        }
+                        Image(systemName: icon)
+                            .foregroundColor(color)
                     }
                     .padding(.vertical, 4)
                 }

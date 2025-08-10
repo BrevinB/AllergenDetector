@@ -56,7 +56,15 @@ class HistoryService: ObservableObject {
         var lines: [String] = []
         for record in records {
             let dateString = formatter.string(from: record.dateScanned)
-            let safeString = record.isSafe ? "Safe" : "Unsafe"
+            let safeString: String
+            switch record.safety {
+            case .safe:
+                safeString = "Safe"
+            case .unsafe:
+                safeString = "Unsafe"
+            case .unknown:
+                safeString = "Unknown"
+            }
             let line = "\(record.barcode) - \(record.productName) - \(dateString) - \(safeString)"
             lines.append(line)
         }
