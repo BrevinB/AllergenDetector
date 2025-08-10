@@ -117,13 +117,16 @@ struct ContentView: View {
                 allergenChipsView
 
                 // MARK: Scan Button
-                scanButtonView
-
+                
                 Spacer()
+                
 
                 // MARK: Last Scanned Product Card (spring‐animate its appearance)
                 scannedProductCardView
 
+        
+                Spacer()
+                scanButtonView
                 Spacer()
             }
             .padding(.top)
