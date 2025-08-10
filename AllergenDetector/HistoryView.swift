@@ -45,22 +45,25 @@ struct HistoryView: View {
                                 .foregroundColor(.secondary)
                         }
                         Spacer()
-                        let (icon, color): (String, Color)
-                        switch record.safety {
-                        case .safe:
-                            icon = "checkmark.seal.fill"
-                            color = .green
-                        case .unsafe:
-                            icon = "xmark.shield.fill"
-                            color = .red
-                        case .unknown:
-                            icon = "questionmark.diamond.fill"
-                            color = .yellow
-                        }
-                        Image(systemName: icon)
-                            .foregroundColor(color)
+                        Image(systemName: {
+                            switch record.safety {
+                            case .safe: return "checkmark.seal.fill"
+                            case .unsafe: return "xmark.shield.fill"
+                            case .unknown: return "questionmark.diamond.fill"
+                            }
+                        }())
+                        .foregroundColor({
+                            switch record.safety {
+                            case .safe: return .green
+                            case .unsafe: return .red
+                            case .unknown: return .yellow
+                            }
+                        }())
                     }
                     .padding(.vertical, 4)
+                }
+                .onDelete { indices in
+                    history.records.remove(atOffsets: indices)
                 }
             }
         }
@@ -108,3 +111,4 @@ struct HistoryView: View {
         HistoryView()
     }
 }
+
