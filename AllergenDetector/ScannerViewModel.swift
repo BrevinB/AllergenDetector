@@ -119,6 +119,7 @@ class ScannerViewModel: ObservableObject {
     @Published var matchDetails: [AllergenMatchDetail] = []
     @Published var allergenStatuses: [Allergen: Bool] = [:]
     @Published var customAllergenStatuses: [String: Bool] = [:]
+    @Published var lastScanSafety: SafetyStatus?
 
     func handleBarcode(
         _ code: String,
@@ -132,10 +133,22 @@ class ScannerViewModel: ObservableObject {
                 scannedProduct = product
 
                 if product.ingredients.isEmpty {
-                    alertMessage = "\(product.productName) does not list any ingredients. Unable to check for allergens."
+                    matchDetails = []
+                    allergenStatuses = [:]
+                    customAllergenStatuses = [:]
+                    lastScanSafety = .unknown
+                    alertMessage = "\(product.productName) does not list any ingredients. Safety is unknown."
                     showAlert = true
                     let generator = UINotificationFeedbackGenerator()
                     generator.notificationOccurred(.warning)
+                    let record = ScanRecord(
+                        id: UUID(),
+                        barcode: product.barcode,
+                        productName: product.productName,
+                        dateScanned: Date(),
+                        safety: .unknown
+                    )
+                    HistoryService.shared.addRecord(record)
                 } else {
                     checkAllergens(
                         product,
@@ -240,13 +253,15 @@ class ScannerViewModel: ObservableObject {
         // all built-in allergens passed.
         let hasCustomMatch = customStatus.values.contains(false)
         let isSafe = !statusDict.values.contains(false) && !hasCustomMatch
+        let safety: SafetyStatus = isSafe ? .safe : .unsafe
 
         self.matchDetails = detailsArray
         self.allergenStatuses = statusDict
         self.customAllergenStatuses = customStatus
+        self.lastScanSafety = safety
 
         // Compose alert message summarizing safety
-        if isSafe {
+        if safety == .safe {
             alertMessage = "\(product.productName) is safe to eat!"
         } else {
 
@@ -284,9 +299,10 @@ class ScannerViewModel: ObservableObject {
         }
         
         let generator = UINotificationFeedbackGenerator()
-        if isSafe {
+        switch safety {
+        case .safe:
             generator.notificationOccurred(.success)
-        } else {
+        case .unsafe, .unknown:
             generator.notificationOccurred(.warning)
         }
         showAlert = true
@@ -296,7 +312,7 @@ class ScannerViewModel: ObservableObject {
             barcode: product.barcode,
             productName: product.productName,
             dateScanned: Date(),
-            isSafe: isSafe
+            safety: safety
         )
         HistoryService.shared.addRecord(record)
     }

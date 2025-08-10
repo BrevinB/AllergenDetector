@@ -73,7 +73,8 @@ struct ContentView: View {
                 selectedAllergens: settings.selectedAllergens,
                 matchDetails: viewModel.matchDetails,
                 allergenStatuses: viewModel.allergenStatuses,
-                customAllergenStatuses: viewModel.customAllergenStatuses
+                customAllergenStatuses: viewModel.customAllergenStatuses,
+                safetyStatus: viewModel.lastScanSafety ?? .unknown
             )
             .padding(.horizontal)
             .transition(.move(edge: .bottom).combined(with: .opacity))
@@ -196,21 +197,33 @@ struct ProductCardView: View {
     let matchDetails: [ScannerViewModel.AllergenMatchDetail]
     let allergenStatuses: [Allergen: Bool]
     let customAllergenStatuses: [String: Bool]
-    
-    // Product is safe only if no selected allergens were flagged and no custom
-    // allergens were matched in the ingredients list.
-    var isSafe: Bool {
-        let hasCustomMatch = customAllergenStatuses.values.contains(false)
-        return !allergenStatuses.values.contains(false) && !hasCustomMatch
-    }
+    let safetyStatus: SafetyStatus
 
     var body: some View {
-        VStack(spacing: 0) {
+        let icon: String
+        let title: String
+        let bannerColor: Color
+        switch safetyStatus {
+        case .safe:
+            icon = "checkmark.shield.fill"
+            title = "Safe to Eat"
+            bannerColor = Color(.systemGreen)
+        case .unsafe:
+            icon = "exclamationmark.triangle.fill"
+            title = "Warning!"
+            bannerColor = Color(.systemRed)
+        case .unknown:
+            icon = "questionmark.diamond.fill"
+            title = "Unknown Safety"
+            bannerColor = Color(.systemOrange)
+        }
+
+        return VStack(spacing: 0) {
             // HEADER BANNER - shows safety based on combined logic of allergens and matchDetails
             HStack {
-                Image(systemName: isSafe ? "checkmark.shield.fill" : "exclamationmark.triangle.fill")
+                Image(systemName: icon)
                     .foregroundColor(.white)
-                Text(isSafe ? "Safe to Eat" : "Warning!")
+                Text(title)
                     .font(.headline)
                     .foregroundColor(.white)
                 Spacer()
@@ -220,7 +233,7 @@ struct ProductCardView: View {
             }
             .padding(.horizontal)
             .padding(.vertical, 12)
-            .background(isSafe ? Color(.systemGreen) : Color(.systemRed))
+            .background(bannerColor)
 
             // MAIN CONTENT
             VStack(alignment: .leading, spacing: 8) {
