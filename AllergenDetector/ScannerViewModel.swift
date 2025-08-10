@@ -130,11 +130,19 @@ class ScannerViewModel: ObservableObject {
             do {
                 let product = try await ProductService.shared.fetchProduct(barcode: code)
                 scannedProduct = product
-                checkAllergens(
-                    product,
-                    selectedAllergens: selectedAllergens,
-                    customAllergens: customAllergens
-                )
+
+                if product.ingredients.isEmpty {
+                    alertMessage = "\(product.productName) does not list any ingredients. Unable to check for allergens."
+                    showAlert = true
+                    let generator = UINotificationFeedbackGenerator()
+                    generator.notificationOccurred(.warning)
+                } else {
+                    checkAllergens(
+                        product,
+                        selectedAllergens: selectedAllergens,
+                        customAllergens: customAllergens
+                    )
+                }
             } catch _ as ProductError {
                 alertMessage = "Product not found in database. Please try another barcode."
                 showAlert = true
