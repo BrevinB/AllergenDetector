@@ -10,6 +10,8 @@ struct BarcodeScannerView: UIViewRepresentable {
 
     func makeUIView(context: Context) -> UIView {
         let view = UIView(frame: .zero)
+        view.accessibilityViewIsModal = true
+        view.accessibilityLabel = "Barcode scanner"
 
         // Configure preview layer on the main thread
         let previewLayer = AVCaptureVideoPreviewLayer(session: context.coordinator.captureSession)
@@ -20,10 +22,14 @@ struct BarcodeScannerView: UIViewRepresentable {
         // Add a "Scanning..." overlay label at the bottom
         let scanningLabel = UILabel()
         scanningLabel.text = "Scanning..."
-        scanningLabel.textColor = .white
-        scanningLabel.backgroundColor = UIColor.black.withAlphaComponent(0.5)
+        scanningLabel.font = UIFont.preferredFont(forTextStyle: .body)
+        scanningLabel.adjustsFontForContentSizeCategory = true
+        scanningLabel.textColor = .label
+        scanningLabel.backgroundColor = UIColor.systemBackground.withAlphaComponent(0.6)
         scanningLabel.textAlignment = .center
+        scanningLabel.accessibilityLabel = "Scanning for barcode"
         scanningLabel.translatesAutoresizingMaskIntoConstraints = false
+        scanningLabel.tag = 999
         view.addSubview(scanningLabel)
 
         // Constraints for the label
@@ -34,8 +40,24 @@ struct BarcodeScannerView: UIViewRepresentable {
             scanningLabel.heightAnchor.constraint(equalToConstant: 40)
         ])
 
-        // Finally, start the session on the sessionQueue:
-        context.coordinator.startSession()
+        // Check camera permissions before starting the session
+        let status = AVCaptureDevice.authorizationStatus(for: .video)
+        switch status {
+        case .authorized:
+            context.coordinator.startSession()
+        case .notDetermined:
+            AVCaptureDevice.requestAccess(for: .video) { granted in
+                DispatchQueue.main.async {
+                    if granted {
+                        context.coordinator.startSession()
+                    } else {
+                        showPermissionDeniedMessage(on: view)
+                    }
+                }
+            }
+        default:
+            showPermissionDeniedMessage(on: view)
+        }
 
         return view
     }
@@ -47,6 +69,29 @@ struct BarcodeScannerView: UIViewRepresentable {
                 previewLayer.frame = uiView.bounds
             }
         }
+    }
+
+    private func showPermissionDeniedMessage(on view: UIView) {
+        if let existing = view.viewWithTag(999) {
+            existing.removeFromSuperview()
+        }
+        let label = UILabel()
+        label.text = "Camera access is required to scan barcodes. Please enable camera in Settings."
+        label.font = UIFont.preferredFont(forTextStyle: .body)
+        label.adjustsFontForContentSizeCategory = true
+        label.textColor = .label
+        label.numberOfLines = 0
+        label.textAlignment = .center
+        label.accessibilityLabel = label.text
+        label.translatesAutoresizingMaskIntoConstraints = false
+        label.tag = 998
+        view.addSubview(label)
+        NSLayoutConstraint.activate([
+            label.centerXAnchor.constraint(equalTo: view.centerXAnchor),
+            label.centerYAnchor.constraint(equalTo: view.centerYAnchor),
+            label.leadingAnchor.constraint(greaterThanOrEqualTo: view.leadingAnchor, constant: 16),
+            label.trailingAnchor.constraint(lessThanOrEqualTo: view.trailingAnchor, constant: -16)
+        ])
     }
 
     // MARK: - Coordinator
