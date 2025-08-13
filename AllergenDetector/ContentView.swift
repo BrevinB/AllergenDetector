@@ -176,10 +176,8 @@ struct ContentView: View {
                     pulse.toggle()
                 }
             }
-            .onChange(of: settings.selectedAllergens) { _ in
-                handleSelectedAllergensChange()
-            }
-            .onChange(of: settings.customAllergens) { _ in
+            .onChange(of: settings.selectedAllergens, handleSelectedAllergensChange)
+            .onChange(of: settings.customAllergens) {
                 let active = settings.activeCustomAllergenNames
                 for key in Array(viewModel.customAllergenStatuses.keys) {
                     if !active.contains(key) {

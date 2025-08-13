@@ -38,7 +38,7 @@ class ProductService {
             return product
         } catch {
             // On network error, attempt to load from cache
-            if let urlError = error as? URLError,
+            if let _ = error as? URLError,
                let cachedData = loadCachedData(for: barcode) {
                 let apiResponse = try JSONDecoder().decode(APIResponse.self, from: cachedData)
                 let product = try apiResponse.toProduct()
