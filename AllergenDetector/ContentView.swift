@@ -23,21 +23,11 @@ struct ContentView: View {
             ScrollView(.horizontal, showsIndicators: false) {
                 HStack(spacing: 8) {
                     ForEach(settings.selectedAllergens.sorted(by: { $0.displayName < $1.displayName })) { allergen in
-                        Text(allergen.displayName)
-                            .font(.subheadline.weight(.semibold))
-                            .padding(.horizontal, 12)
-                            .padding(.vertical, 6)
-                            .background(Color.secondary.opacity(0.1))
-                            .clipShape(Capsule())
+                        AllergenChip(label: allergen.displayName)
                     }
 
                     ForEach(settings.activeCustomAllergenNames.sorted(), id: \.self) { custom in
-                        Text(custom)
-                            .font(.subheadline.weight(.semibold))
-                            .padding(.horizontal, 12)
-                            .padding(.vertical, 6)
-                            .background(Color.secondary.opacity(0.1))
-                            .clipShape(Capsule())
+                        AllergenChip(label: custom)
                     }
                 }
                 .padding(.horizontal)
@@ -314,7 +304,8 @@ struct ProductCardView: View {
                 .padding([.top, .horizontal])
             }
         }
-        .clipShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
+        .background(Color(.systemBackground))
+        .cornerRadius(16)
         .shadow(color: Color.black.opacity(0.1), radius: 8, x: 0, y: 4)
     }
 }

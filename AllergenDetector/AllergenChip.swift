@@ -13,11 +13,17 @@ struct AllergenChip: View {
     var body: some View {
         Text(label)
             .font(.subheadline.weight(.semibold))
-            .padding(.horizontal, 12)
-            .padding(.vertical, 6)
-            .background(Color.secondary.opacity(0.1))
-            .foregroundColor(.primary)
-            .clipShape(Capsule())
+            .padding(.horizontal, 16)
+            .padding(.vertical, 8)
+            .background(
+                Capsule()
+                    .fill(Color.accentColor.opacity(0.2))
+            )
+            .overlay(
+                Capsule()
+                    .stroke(Color.accentColor, lineWidth: 1)
+            )
+            .foregroundColor(.accentColor)
             .transition(.scale.combined(with: .opacity))
     }
 }
