@@ -20,6 +20,10 @@ class ScannerViewModel: ObservableObject {
     static let ingredientToAllergen: [String: (allergen: Allergen, explanation: String)] = [
         "casein": (.dairy, "Casein is a milk protein and a common allergen for those sensitive to dairy."),
         "whey": (.dairy, "Whey is derived from milk and a source of dairy allergens."),
+        "milk": (.dairy, "Milk is a dairy product and a common allergen."),
+        "dairy": (.dairy, "Dairy indicates the presence of milk-based ingredients."),
+        "yogurt": (.dairy, "Yogurt is made from milk and contains dairy allergens."),
+        "cheese": (.dairy, "Cheese is made from milk and contains dairy allergens."),
         "albumin": (.eggs, "Albumin is a protein found in egg whites."),
         "egg": (.eggs, "Eggs are a common allergen."),
         "globulin": (.eggs, "Globulin is an egg white protein."),
