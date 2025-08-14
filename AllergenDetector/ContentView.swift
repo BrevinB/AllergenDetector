@@ -46,7 +46,7 @@ struct ContentView: View {
             pulse = false
         } label: {
             Label("Scan Barcode", systemImage: "barcode.viewfinder")
-                .font(.headline)
+                .font(.title3)
                 .padding()
                 .frame(maxWidth: .infinity)
         }
@@ -215,11 +215,11 @@ struct ProductCardView: View {
                 Image(systemName: icon)
                     .foregroundColor(.white)
                 Text(title)
-                    .font(.headline)
+                    .font(.title3)
                     .foregroundColor(.white)
                 Spacer()
                 Text(product.productName)
-                    .font(.subheadline.weight(.semibold))
+                    .font(.body.weight(.semibold))
                     .foregroundColor(.white.opacity(0.9))
             }
             .padding(.horizontal)
@@ -230,14 +230,14 @@ struct ProductCardView: View {
             VStack(alignment: .leading, spacing: 8) {
                 HStack {
                     Text("Name:")
-                        .font(.subheadline.weight(.semibold))
+                        .font(.body.weight(.semibold))
                     Text(product.productName)
-                        .font(.subheadline)
+                        .font(.body)
                     Spacer()
                 }
                 HStack(alignment: .top) {
                     Text("Allergens:")
-                        .font(.subheadline.weight(.semibold))
+                        .font(.body.weight(.semibold))
                     // Combine allergens from product.allergens (filtered by selectedAllergens)
                     // and any found via ingredient matching or custom allergens
                     let productAllergensSet = Set(
@@ -250,12 +250,12 @@ struct ProductCardView: View {
 
                     if uniqueAllergens.isEmpty {
                         Text("None Found")
-                            .font(.subheadline)
+                            .font(.body)
                     } else {
                         VStack(alignment: .leading, spacing: 4) {
                             ForEach(Array(uniqueAllergens), id: \.self) { name in
                                 Text("• \(name)")
-                                    .font(.subheadline)
+                                    .font(.body)
                             }
                         }
                     }
@@ -264,24 +264,30 @@ struct ProductCardView: View {
                 if !allergenStatuses.isEmpty || !customAllergenStatuses.isEmpty {
                     VStack(alignment: .leading, spacing: 4) {
                         Text("Selected Allergen Results:")
-                            .font(.subheadline.weight(.semibold))
-                        ForEach(Array(selectedAllergens).sorted { $0.displayName < $1.displayName }) { allergen in
-                            HStack {
-                                Image(systemName: allergenStatuses[allergen] == true ? "checkmark.circle" : "xmark.octagon")
-                                    .foregroundColor(allergenStatuses[allergen] == true ? .green : .red)
-                                Text(allergen.displayName)
+                            .font(.body.weight(.semibold))
+                        ScrollView {
+                            VStack(alignment: .leading, spacing: 4) {
+                                ForEach(Array(selectedAllergens).sorted { $0.displayName < $1.displayName }) { allergen in
+                                    HStack {
+                                        Image(systemName: allergenStatuses[allergen] == true ? "checkmark.circle" : "xmark.octagon")
+                                            .foregroundColor(allergenStatuses[allergen] == true ? .green : .red)
+                                        Text(allergen.displayName)
+                                    }
+                                    .font(.body)
+                                }
+                                ForEach(customAllergenStatuses.keys.sorted(), id: \.self) { name in
+                                    HStack {
+                                        let safe = customAllergenStatuses[name] == true
+                                        Image(systemName: safe ? "checkmark.circle" : "xmark.octagon")
+                                            .foregroundColor(safe ? .green : .red)
+                                        Text(name)
+                                    }
+                                    .font(.body)
+                                }
                             }
-                            .font(.subheadline)
+                            .frame(maxWidth: .infinity, alignment: .leading)
                         }
-                        ForEach(customAllergenStatuses.keys.sorted(), id: \.self) { name in
-                            HStack {
-                                let safe = customAllergenStatuses[name] == true
-                                Image(systemName: safe ? "checkmark.circle" : "xmark.octagon")
-                                    .foregroundColor(safe ? .green : .red)
-                                Text(name)
-                            }
-                            .font(.subheadline)
-                        }
+                        .frame(maxHeight: 150)
                     }
                 }
             }
@@ -291,20 +297,28 @@ struct ProductCardView: View {
                 Divider()
                 VStack(alignment: .leading, spacing: 6) {
                     Text("Why flagged?")
-                        .font(.subheadline.weight(.bold))
+                        .font(.body.weight(.bold))
                         .foregroundColor(.primary)
                     ForEach(matchDetails.indices, id: \.self) { idx in
                         let detail = matchDetails[idx]
                         Text("\u{2022} \(detail.ingredient): \(detail.allergenName) — \(detail.explanation)")
-                            .font(.footnote)
+                            .font(.callout)
                     }
                 }
                 .padding([.top, .horizontal])
             }
         }
-        .background(Color(.systemBackground))
-        .cornerRadius(16)
-        .shadow(color: Color.black.opacity(0.1), radius: 8, x: 0, y: 4)
+        .background(
+            RoundedRectangle(cornerRadius: 16)
+                .fill(Color(.systemBackground))
+                .shadow(color: Color.black.opacity(0.25), radius: 10, x: 0, y: 8)
+                .shadow(color: Color.black.opacity(0.1), radius: 4, x: 0, y: 2)
+        )
+        .overlay(
+            RoundedRectangle(cornerRadius: 16)
+                .stroke(Color.white.opacity(0.6), lineWidth: 1)
+                .blendMode(.overlay)
+        )
     }
 }
 
