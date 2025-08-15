@@ -103,23 +103,24 @@ struct ContentView: View {
 
     var body: some View {
         NavigationView {
+            ScrollView {
             VStack(spacing: 24) {
                 // MARK: Selected Allergen Chips (animated)
                 allergenChipsView
-
+                
                 // MARK: Scan Button
                 
                 Spacer()
                 
-
+                
                 // MARK: Last Scanned Product Card (spring‐animate its appearance)
                 scannedProductCardView
-
-        
+                
+                
                 Spacer()
                 scanButtonView
                 Spacer()
-            }
+            }}
             .padding(.top)
             .navigationTitle("Allergen Detector")
             .toolbar {
