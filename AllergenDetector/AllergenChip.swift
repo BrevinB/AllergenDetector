@@ -32,7 +32,7 @@ struct AllergenChip: View {
         }
         .font(.headline.weight(.semibold))
         .padding(.horizontal, 16)
-        .padding(.vertical, 8)
+        .padding(.vertical, 12)
         .background(
             Capsule()
                 .fill(Color.accentColor.opacity(0.2))

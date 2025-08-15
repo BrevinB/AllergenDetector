@@ -146,13 +146,6 @@ struct ContentView: View {
                 )
                 .environmentObject(settings)
             }
-            .alert(isPresented: $viewModel.showAlert) {
-                Alert(
-                    title: Text("Result"),
-                    message: Text(viewModel.alertMessage ?? ""),
-                    dismissButton: .default(Text("OK"))
-                )
-            }
             .overlay {
                 if viewModel.isLoading {
                     ProgressView()
@@ -183,6 +176,10 @@ struct ContentView: View {
 }
 
 struct ProductCardView: View {
+    @Environment(\.colorScheme) private var colorScheme
+    @State private var showAllergens = true
+    @State private var showReasons = false
+
     let product: Product
     let selectedAllergens: Set<Allergen>
     let matchDetails: [ScannerViewModel.AllergenMatchDetail]
@@ -191,134 +188,183 @@ struct ProductCardView: View {
     let safetyStatus: SafetyStatus
 
     var body: some View {
+        // Header config
         let icon: String
         let title: String
-        let bannerColor: Color
+        let bannerBase: Color
         switch safetyStatus {
-        case .safe:
-            icon = "checkmark.shield.fill"
-            title = "Safe to Eat"
-            bannerColor = Color(.systemGreen)
-        case .unsafe:
-            icon = "exclamationmark.triangle.fill"
-            title = "Warning!"
-            bannerColor = Color(.systemRed)
-        case .unknown:
-            icon = "questionmark.diamond.fill"
-            title = "Unknown Safety"
-            bannerColor = Color(.systemOrange)
+        case .safe:    icon = "checkmark.shield.fill";      title = "Safe to Eat";    bannerBase = Color(.systemGreen)
+        case .unsafe:  icon = "exclamationmark.triangle.fill"; title = "Warning!";    bannerBase = Color(.systemRed)
+        case .unknown: icon = "questionmark.diamond.fill";  title = "Unknown Safety"; bannerBase = Color(.systemOrange)
         }
 
+        // Card styling (dark vs light)
+        let cardFill: some ShapeStyle =
+            colorScheme == .dark ? AnyShapeStyle(.regularMaterial)
+                                 : AnyShapeStyle(Color(.systemBackground))
+        let cardStroke = colorScheme == .dark ? Color.white.opacity(0.10)
+                                              : Color.black.opacity(0.06)
+        let dropShadow = colorScheme == .dark ? Color.black.opacity(0.70)
+                                              : Color.black.opacity(0.15)
+
+        // Build combined allergen list for the chip grid (flagged first)
+        let allItems: [AllergenItem] = {
+            var items = Array(selectedAllergens).map {
+                AllergenItem(name: $0.displayName, isSafe: allergenStatuses[$0] == true)
+            }
+            items += customAllergenStatuses.map { .init(name: $0.key, isSafe: $0.value) }
+            // flagged first, then alpha
+            return items.sorted { (lhs, rhs) in
+                if lhs.isSafe != rhs.isSafe { return !lhs.isSafe && rhs.isSafe }
+                return lhs.name < rhs.name
+            }
+        }()
+
+        let flaggedCount = allItems.filter { !$0.isSafe }.count
+        let safeCount = allItems.count - flaggedCount
+
         return VStack(spacing: 0) {
-            // HEADER BANNER - shows safety based on combined logic of allergens and matchDetails
+            // HEADER
             HStack {
-                Image(systemName: icon)
-                    .foregroundColor(.white)
-                Text(title)
-                    .font(.title3)
-                    .foregroundColor(.white)
+                Image(systemName: icon).foregroundColor(.white)
+                Text(title).font(.title3).foregroundColor(.white)
                 Spacer()
                 Text(product.productName)
                     .font(.body.weight(.semibold))
-                    .foregroundColor(.white.opacity(0.9))
+                    .foregroundColor(.white.opacity(0.92))
+                    .lineLimit(1)
+                    .minimumScaleFactor(0.85)
             }
             .padding(.horizontal)
             .padding(.vertical, 12)
-            .background(bannerColor)
+            .background(
+                LinearGradient(colors: [bannerBase.opacity(0.98), bannerBase.opacity(0.85)],
+                               startPoint: .topLeading, endPoint: .bottomTrailing)
+                    .clipShape(RoundedCornerShape(radius: 12, corners: [.topLeft, .topRight]))
+                    .shadow(color: bannerBase.opacity(colorScheme == .dark ? 0.45 : 0.25),
+                            radius: colorScheme == .dark ? 20 : 10, x: 0, y: 8)
+            )
 
             // MAIN CONTENT
-            VStack(alignment: .leading, spacing: 8) {
-                HStack {
-                    Text("Name:")
-                        .font(.body.weight(.semibold))
+            VStack(alignment: .leading, spacing: 12) {
+                HStack(alignment: .firstTextBaseline) {
+                    Text("Name:").font(.body.weight(.semibold))
                     Text(product.productName)
-                        .font(.body)
                     Spacer()
                 }
-                HStack(alignment: .top) {
-                    Text("Allergens:")
-                        .font(.body.weight(.semibold))
-                    // Combine allergens from product.allergens (filtered by selectedAllergens)
-                    // and any found via ingredient matching or custom allergens
-                    let productAllergensSet = Set(
-                        product.allergens
-                            .filter { selectedAllergens.contains($0) }
-                            .map { $0.displayName }
-                    )
+
+                HStack(alignment: .top, spacing: 6) {
+                    Text("Allergens:").font(.body.weight(.semibold))
+
+                    let productAllergensSet = Set(product.allergens.filter { selectedAllergens.contains($0) }.map { $0.displayName })
                     let matchAllergensSet = Set(matchDetails.map { $0.allergenName })
                     let uniqueAllergens = productAllergensSet.union(matchAllergensSet)
 
                     if uniqueAllergens.isEmpty {
                         Text("None Found")
-                            .font(.body)
                     } else {
                         VStack(alignment: .leading, spacing: 4) {
-                            ForEach(Array(uniqueAllergens), id: \.self) { name in
+                            ForEach(Array(uniqueAllergens).sorted(), id: \.self) { name in
                                 Text("• \(name)")
-                                    .font(.body)
                             }
                         }
                     }
                 }
 
-                if !allergenStatuses.isEmpty || !customAllergenStatuses.isEmpty {
-                    VStack(alignment: .leading, spacing: 4) {
-                        Text("Selected Allergen Results:")
-                            .font(.body.weight(.semibold))
-                        ScrollView {
-                            VStack(alignment: .leading, spacing: 4) {
-                                ForEach(Array(selectedAllergens).sorted { $0.displayName < $1.displayName }) { allergen in
-                                    HStack {
-                                        Image(systemName: allergenStatuses[allergen] == true ? "checkmark.circle" : "xmark.octagon")
-                                            .foregroundColor(allergenStatuses[allergen] == true ? .green : .red)
-                                        Text(allergen.displayName)
-                                    }
-                                    .font(.body)
-                                }
-                                ForEach(customAllergenStatuses.keys.sorted(), id: \.self) { name in
-                                    HStack {
-                                        let safe = customAllergenStatuses[name] == true
-                                        Image(systemName: safe ? "checkmark.circle" : "xmark.octagon")
-                                            .foregroundColor(safe ? .green : .red)
-                                        Text(name)
-                                    }
-                                    .font(.body)
+                // SELECTED RESULTS — chips in an adaptive grid inside a DisclosureGroup
+                if !allItems.isEmpty {
+                    VStack(alignment: .leading, spacing: 6) {
+                        DisclosureGroup(
+                            "Selected Allergen Results (\(flaggedCount) flagged, \(safeCount) safe)",
+                            isExpanded: $showAllergens
+                        ) {
+                            let cols = [GridItem(.adaptive(minimum: 120), spacing: 8)]
+                            LazyVGrid(columns: cols, spacing: 8) {
+                                ForEach(allItems) { item in
+                                    AllergenChips(name: item.name, isSafe: item.isSafe)
                                 }
                             }
-                            .frame(maxWidth: .infinity, alignment: .leading)
+                            .padding(.top, 4)
                         }
-                        .frame(maxHeight: 150)
+                        .font(.body.weight(.semibold))
+                        .tint(.primary)
                     }
                 }
             }
-            .padding()
-            
+            .padding(.horizontal)
+            .padding(.top, 12)
+            .padding(.bottom, matchDetails.isEmpty ? 12 : 0)
+
+            // WHY FLAGGED — collapse if long
             if !matchDetails.isEmpty {
                 Divider()
-                VStack(alignment: .leading, spacing: 6) {
-                    Text("Why flagged?")
-                        .font(.body.weight(.bold))
-                        .foregroundColor(.primary)
-                    ForEach(matchDetails.indices, id: \.self) { idx in
-                        let detail = matchDetails[idx]
-                        Text("\u{2022} \(detail.ingredient): \(detail.allergenName) — \(detail.explanation)")
-                            .font(.callout)
+                VStack(alignment: .leading, spacing: 8) {
+                    DisclosureGroup("Why flagged? (\(matchDetails.count))", isExpanded: $showReasons) {
+                        VStack(alignment: .leading, spacing: 6) {
+                            ForEach(matchDetails.indices, id: \.self) { i in
+                                let d = matchDetails[i]
+                                Text("• \(d.ingredient): \(d.allergenName) — \(d.explanation)")
+                                    .font(.callout)
+                            }
+                        }
+                        .padding(.top, 4)
                     }
+                    .font(.body.weight(.bold))
                 }
-                .padding([.top, .horizontal])
+                .padding(.horizontal)
+                .padding(.vertical, 12)
             }
         }
         .background(
             RoundedRectangle(cornerRadius: 16)
-                .fill(Color(.systemBackground))
-                .shadow(color: Color.black.opacity(0.25), radius: 10, x: 0, y: 8)
-                .shadow(color: Color.black.opacity(0.1), radius: 4, x: 0, y: 2)
+                .fill(cardFill)
+                .overlay(
+                    RoundedRectangle(cornerRadius: 16)
+                        .stroke(cardStroke, lineWidth: 1)
+                )
+                .shadow(color: dropShadow, radius: 22, x: 0, y: 16)
+        )
+    }
+}
+
+private struct AllergenItem: Identifiable {
+    let id = UUID()
+    let name: String
+    let isSafe: Bool
+}
+
+private struct AllergenChips: View {
+    @Environment(\.colorScheme) private var scheme
+    let name: String
+    let isSafe: Bool
+
+    var body: some View {
+        let fillColor: Color = isSafe
+            ? (scheme == .dark ? Color.green.opacity(0.18) : Color.green.opacity(0.12))
+            : (scheme == .dark ? Color.red.opacity(0.22) : Color.red.opacity(0.14))
+        let strokeColor: Color = isSafe
+            ? Color.green.opacity(scheme == .dark ? 0.55 : 0.35)
+            : Color.red.opacity(scheme == .dark ? 0.55 : 0.35)
+        let foreground: Color = isSafe ? Color.green : Color.red
+
+        HStack(spacing: 6) {
+            Image(systemName: isSafe ? "checkmark.circle.fill" : "xmark.octagon.fill")
+                .imageScale(.small)
+            Text(name)
+                .lineLimit(1)
+                .minimumScaleFactor(0.85)
+        }
+        .padding(.horizontal, 10)
+        .padding(.vertical, 6)
+        .background(
+            Capsule()
+                .fill(fillColor)
         )
         .overlay(
-            RoundedRectangle(cornerRadius: 16)
-                .stroke(Color.white.opacity(0.6), lineWidth: 1)
-                .blendMode(.overlay)
+            Capsule()
+                .stroke(strokeColor, lineWidth: 1)
         )
+        .foregroundStyle(foreground)
     }
 }
 
@@ -329,4 +375,18 @@ struct ProductCardView: View {
 
 // Note: ProductCardView requires matchDetails parameter, ContentView passes it from viewModel.matchDetails.
 // The preview ContentView uses empty UserSettings() for environment object, no direct ProductCardView preview provided here.
+
+struct RoundedCornerShape: Shape {
+    var radius: CGFloat = 12
+    var corners: UIRectCorner = [.topLeft, .topRight]
+    
+    func path(in rect: CGRect) -> Path {
+        let path = UIBezierPath(
+            roundedRect: rect,
+            byRoundingCorners: corners,
+            cornerRadii: CGSize(width: radius, height: radius)
+        )
+        return Path(path.cgPath)
+    }
+}
 
