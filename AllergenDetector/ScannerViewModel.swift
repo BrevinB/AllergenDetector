@@ -125,6 +125,18 @@ class ScannerViewModel: ObservableObject {
     @Published var customAllergenStatuses: [String: Bool] = [:]
     @Published var lastScanSafety: SafetyStatus?
 
+    func reevaluateCurrentProduct(
+        selectedAllergens: Set<Allergen>,
+        customAllergens: [String]
+    ) {
+        guard let product = scannedProduct else { return }
+        checkAllergens(
+            product,
+            selectedAllergens: selectedAllergens,
+            customAllergens: customAllergens
+        )
+    }
+
     func handleBarcode(
         _ code: String,
         selectedAllergens: Set<Allergen>,
