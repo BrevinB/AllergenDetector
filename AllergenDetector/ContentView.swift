@@ -84,22 +84,6 @@ struct ContentView: View {
         }
     }
 
-    private func handleSelectedAllergensChange() {
-        for key in Array(viewModel.allergenStatuses.keys) {
-            if !settings.selectedAllergens.contains(key) {
-                viewModel.allergenStatuses.removeValue(forKey: key)
-            }
-        }
-        viewModel.matchDetails.removeAll { detail in
-            let contains: Bool
-            if let allergen = detail.allergen {
-                contains = !settings.selectedAllergens.contains(allergen)
-            } else {
-                contains = false
-            }
-            return contains
-        }
-    }
 
     var body: some View {
         NavigationView {
@@ -160,17 +144,17 @@ struct ContentView: View {
                     pulse.toggle()
                 }
             }
-            .onChange(of: settings.selectedAllergens, handleSelectedAllergensChange)
-            .onChange(of: settings.customAllergens) {
-                let active = settings.activeCustomAllergenNames
-                for key in Array(viewModel.customAllergenStatuses.keys) {
-                    if !active.contains(key) {
-                        viewModel.customAllergenStatuses.removeValue(forKey: key)
-                    }
-                }
-                viewModel.matchDetails.removeAll { detail in
-                    detail.allergen == nil && !active.contains(detail.allergenName)
-                }
+            .onChange(of: settings.selectedAllergens) { _ in
+                viewModel.reevaluateCurrentProduct(
+                    selectedAllergens: settings.selectedAllergens,
+                    customAllergens: settings.activeCustomAllergenNames
+                )
+            }
+            .onChange(of: settings.customAllergens) { _ in
+                viewModel.reevaluateCurrentProduct(
+                    selectedAllergens: settings.selectedAllergens,
+                    customAllergens: settings.activeCustomAllergenNames
+                )
             }
         }
     }
