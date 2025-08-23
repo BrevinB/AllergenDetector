@@ -12,8 +12,13 @@ struct AllergenDetectorApp: App {
     @StateObject private var settings = UserSettings()
     var body: some Scene {
         WindowGroup {
-            ContentView()
-                .environmentObject(settings)
+            if settings.hasCompletedOnboarding {
+                ContentView()
+                    .environmentObject(settings)
+            } else {
+                OnboardingView()
+                    .environmentObject(settings)
+            }
         }
     }
 }

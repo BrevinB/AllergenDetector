@@ -19,9 +19,15 @@ class UserSettings: ObservableObject {
             saveCustom()
         }
     }
+    @Published var hasCompletedOnboarding: Bool {
+        didSet {
+            saveOnboarding()
+        }
+    }
 
     private let defaultsKey = "SelectedAllergens"
     private let customKey = "CustomAllergens"
+    private let onboardingKey = "HasCompletedOnboarding"
 
     init() {
         if let data = UserDefaults.standard.data(forKey: defaultsKey),
@@ -37,6 +43,8 @@ class UserSettings: ObservableObject {
         } else {
             customAllergens = []
         }
+
+        hasCompletedOnboarding = UserDefaults.standard.bool(forKey: onboardingKey)
     }
 
     private func save() {
@@ -49,6 +57,10 @@ class UserSettings: ObservableObject {
         if let data = try? JSONEncoder().encode(customAllergens) {
             UserDefaults.standard.set(data, forKey: customKey)
         }
+    }
+
+    private func saveOnboarding() {
+        UserDefaults.standard.set(hasCompletedOnboarding, forKey: onboardingKey)
     }
 
     var activeCustomAllergenNames: [String] {

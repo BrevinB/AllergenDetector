@@ -75,6 +75,14 @@ struct ContentView: View {
         }
     }
 
+    private var safetyDisclaimer: some View {
+        Text("Always verify ingredients on the actual product if you have a life-threatening allergy.")
+            .font(.footnote)
+            .foregroundColor(.secondary)
+            .multilineTextAlignment(.center)
+            .padding(.horizontal)
+    }
+
     private func startScanFeedback() {
         scanStatusMessage = "Align the barcode within the frame"
         DispatchQueue.main.asyncAfter(deadline: .now() + 5) {
@@ -99,8 +107,11 @@ struct ContentView: View {
                 
                 // MARK: Last Scanned Product Card (spring‐animate its appearance)
                 scannedProductCardView
-                
-                
+                if viewModel.scannedProduct != nil {
+                    safetyDisclaimer
+                }
+
+
                 Spacer()
                 scanButtonView
                 Spacer()
