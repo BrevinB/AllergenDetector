@@ -7,6 +7,7 @@
 
 import Foundation
 import SwiftUI
+import UIKit
 
 @MainActor
 class ScannerViewModel: ObservableObject {
@@ -124,23 +125,27 @@ class ScannerViewModel: ObservableObject {
     @Published var allergenStatuses: [Allergen: Bool] = [:]
     @Published var customAllergenStatuses: [String: Bool] = [:]
     @Published var lastScanSafety: SafetyStatus?
+    @Published var advancedWarnings: [String] = []
 
     func reevaluateCurrentProduct(
         selectedAllergens: Set<Allergen>,
-        customAllergens: [String]
+        customAllergens: [String],
+        isSubscriber: Bool
     ) {
         guard let product = scannedProduct else { return }
         checkAllergens(
             product,
             selectedAllergens: selectedAllergens,
-            customAllergens: customAllergens
+            customAllergens: customAllergens,
+            isSubscriber: isSubscriber
         )
     }
 
     func handleBarcode(
         _ code: String,
         selectedAllergens: Set<Allergen>,
-        customAllergens: [String]
+        customAllergens: [String],
+        isSubscriber: Bool
     ) {
         isLoading = true
         Task {
@@ -169,7 +174,8 @@ class ScannerViewModel: ObservableObject {
                     checkAllergens(
                         product,
                         selectedAllergens: selectedAllergens,
-                        customAllergens: customAllergens
+                        customAllergens: customAllergens,
+                        isSubscriber: isSubscriber
                     )
                 }
             } catch _ as ProductError {
@@ -192,10 +198,35 @@ class ScannerViewModel: ObservableObject {
         }
     }
 
+    func handleOCR(
+        _ image: UIImage,
+        selectedAllergens: Set<Allergen>,
+        customAllergens: [String],
+        isSubscriber: Bool
+    ) async {
+        isLoading = true
+        do {
+            let ingredients = try await IngredientOCRService.shared.extractIngredients(from: image)
+            let product = Product(barcode: "OCR", productName: "Scanned Label", allergens: [], ingredients: ingredients)
+            scannedProduct = product
+            checkAllergens(
+                product,
+                selectedAllergens: selectedAllergens,
+                customAllergens: customAllergens,
+                isSubscriber: isSubscriber
+            )
+        } catch {
+            alertMessage = "Unable to recognize text from image."
+            showAlert = true
+        }
+        isLoading = false
+    }
+
     private func checkAllergens(
         _ product: Product,
         selectedAllergens: Set<Allergen>,
-        customAllergens: [String]
+        customAllergens: [String],
+        isSubscriber: Bool
     ) {
         print("[DEBUG] Ingredients for \(product.productName):", product.ingredients)
         
@@ -276,6 +307,14 @@ class ScannerViewModel: ObservableObject {
         self.customAllergenStatuses = customStatus
         self.lastScanSafety = safety
 
+        if isSubscriber {
+            let ambiguous = AIIngredientAnalyzer.shared.findAmbiguous(in: product.ingredients)
+            let cross = AIIngredientAnalyzer.shared.findCrossContamination(in: product.ingredients)
+            advancedWarnings = ambiguous + cross
+        } else {
+            advancedWarnings = []
+        }
+
         // Compose alert message summarizing safety
         if safety == .safe {
             alertMessage = "\(product.productName) is safe to eat!"
@@ -311,6 +350,13 @@ class ScannerViewModel: ObservableObject {
             alertMessage! += "\nDetails:"
             for detail in detailsArray {
                 alertMessage! += "\n\(detail.ingredient): \(detail.allergenName) - \(detail.explanation)"
+            }
+        }
+
+        if isSubscriber && !advancedWarnings.isEmpty {
+            alertMessage! += "\nAI Warnings:"
+            for warning in advancedWarnings {
+                alertMessage! += "\n\u2022 \(warning)"
             }
         }
         

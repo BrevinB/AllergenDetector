@@ -64,7 +64,8 @@ struct ContentView: View {
                 matchDetails: viewModel.matchDetails,
                 allergenStatuses: viewModel.allergenStatuses,
                 customAllergenStatuses: viewModel.customAllergenStatuses,
-                safetyStatus: viewModel.lastScanSafety ?? .unknown
+                safetyStatus: viewModel.lastScanSafety ?? .unknown,
+                advancedWarnings: viewModel.advancedWarnings
             )
             .padding(.horizontal)
             .transition(.move(edge: .bottom).combined(with: .opacity))
@@ -147,13 +148,15 @@ struct ContentView: View {
             .onChange(of: settings.selectedAllergens) { _ in
                 viewModel.reevaluateCurrentProduct(
                     selectedAllergens: settings.selectedAllergens,
-                    customAllergens: settings.activeCustomAllergenNames
+                    customAllergens: settings.activeCustomAllergenNames,
+                    isSubscriber: settings.isSubscriber
                 )
             }
             .onChange(of: settings.customAllergens) { _ in
                 viewModel.reevaluateCurrentProduct(
                     selectedAllergens: settings.selectedAllergens,
-                    customAllergens: settings.activeCustomAllergenNames
+                    customAllergens: settings.activeCustomAllergenNames,
+                    isSubscriber: settings.isSubscriber
                 )
             }
         }
@@ -171,6 +174,7 @@ struct ProductCardView: View {
     let allergenStatuses: [Allergen: Bool]
     let customAllergenStatuses: [String: Bool]
     let safetyStatus: SafetyStatus
+    let advancedWarnings: [String]
 
     var body: some View {
         // Header config
@@ -295,6 +299,20 @@ struct ProductCardView: View {
                         .padding(.top, 4)
                     }
                     .font(.body.weight(.bold))
+                }
+                .padding(.horizontal)
+                .padding(.vertical, 12)
+            }
+
+            if !advancedWarnings.isEmpty {
+                Divider()
+                VStack(alignment: .leading, spacing: 8) {
+                    Text("AI Warnings")
+                        .font(.body.weight(.bold))
+                    ForEach(advancedWarnings, id: \.self) { warning in
+                        Text("• \(warning)")
+                            .font(.callout)
+                    }
                 }
                 .padding(.horizontal)
                 .padding(.vertical, 12)

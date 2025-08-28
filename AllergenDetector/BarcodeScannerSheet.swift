@@ -14,6 +14,7 @@ struct BarcodeScannerSheet: View {
     @EnvironmentObject var settings: UserSettings
     let scanStatusMessage: String
     let onScanStatusUpdate: () -> Void
+    @State private var showOCR = false
 
     var body: some View {
         ZStack {
@@ -27,7 +28,8 @@ struct BarcodeScannerSheet: View {
                         viewModel.handleBarcode(
                             code,
                             selectedAllergens: settings.selectedAllergens,
-                            customAllergens: settings.activeCustomAllergenNames
+                            customAllergens: settings.activeCustomAllergenNames,
+                            isSubscriber: settings.isSubscriber
                         )
                         isShowing = false
                     }
@@ -52,6 +54,10 @@ struct BarcodeScannerSheet: View {
                         .font(.footnote)
                         .foregroundColor(.secondary)
 
+                    Button("Scan Ingredients with Camera") {
+                        showOCR = true
+                    }
+
                     HStack {
                         Spacer()
                         Button("Submit") {
@@ -59,7 +65,8 @@ struct BarcodeScannerSheet: View {
                             viewModel.handleBarcode(
                                 manualBarcode,
                                 selectedAllergens: settings.selectedAllergens,
-                                customAllergens: settings.activeCustomAllergenNames
+                                customAllergens: settings.activeCustomAllergenNames,
+                                isSubscriber: settings.isSubscriber
                             )
                             manualBarcode = ""
                             isShowing = false
@@ -83,6 +90,10 @@ struct BarcodeScannerSheet: View {
             .clipShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
             .padding()
             .onAppear(perform: onScanStatusUpdate)
+        }
+        .sheet(isPresented: $showOCR) {
+            IngredientOCRSheet(viewModel: viewModel, onFinished: { isShowing = false })
+                .environmentObject(settings)
         }
     }
 }
