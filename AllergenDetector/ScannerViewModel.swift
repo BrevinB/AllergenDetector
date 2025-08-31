@@ -7,6 +7,7 @@
 
 import Foundation
 import SwiftUI
+import UIKit
 
 @MainActor
 class ScannerViewModel: ObservableObject {
@@ -124,23 +125,27 @@ class ScannerViewModel: ObservableObject {
     @Published var allergenStatuses: [Allergen: Bool] = [:]
     @Published var customAllergenStatuses: [String: Bool] = [:]
     @Published var lastScanSafety: SafetyStatus?
+    @Published var advancedWarnings: [String] = []
 
     func reevaluateCurrentProduct(
         selectedAllergens: Set<Allergen>,
-        customAllergens: [String]
+        customAllergens: [String],
+        isSubscriber: Bool
     ) {
         guard let product = scannedProduct else { return }
         checkAllergens(
             product,
             selectedAllergens: selectedAllergens,
-            customAllergens: customAllergens
+            customAllergens: customAllergens,
+            isSubscriber: isSubscriber
         )
     }
 
     func handleBarcode(
         _ code: String,
         selectedAllergens: Set<Allergen>,
-        customAllergens: [String]
+        customAllergens: [String],
+        isSubscriber: Bool
     ) {
         isLoading = true
         Task {
@@ -169,7 +174,8 @@ class ScannerViewModel: ObservableObject {
                     checkAllergens(
                         product,
                         selectedAllergens: selectedAllergens,
-                        customAllergens: customAllergens
+                        customAllergens: customAllergens,
+                        isSubscriber: isSubscriber
                     )
                 }
             } catch _ as ProductError {
@@ -192,10 +198,35 @@ class ScannerViewModel: ObservableObject {
         }
     }
 
+    func handleOCR(
+        _ image: UIImage,
+        selectedAllergens: Set<Allergen>,
+        customAllergens: [String],
+        isSubscriber: Bool
+    ) async {
+        isLoading = true
+        do {
+            let ingredients = try await IngredientOCRService.shared.extractIngredients(from: image)
+            let product = Product(barcode: "OCR", productName: "Scanned Label", allergens: [], ingredients: ingredients)
+            scannedProduct = product
+            checkAllergens(
+                product,
+                selectedAllergens: selectedAllergens,
+                customAllergens: customAllergens,
+                isSubscriber: isSubscriber
+            )
+        } catch {
+            alertMessage = "Unable to recognize text from image."
+            showAlert = true
+        }
+        isLoading = false
+    }
+
     private func checkAllergens(
         _ product: Product,
         selectedAllergens: Set<Allergen>,
-        customAllergens: [String]
+        customAllergens: [String],
+        isSubscriber: Bool
     ) {
         print("[DEBUG] Ingredients for \(product.productName):", product.ingredients)
         
@@ -216,7 +247,7 @@ class ScannerViewModel: ObservableObject {
             */
             
             for (key, mapped) in Self.ingredientToAllergen {
-                if lowerIngredient.contains(key) && selectedAllergens.contains(mapped.allergen) {
+                if lowerIngredient.contains(key) && selectedAllergens.contains(mapped.allergen) && !isNegated(key, in: lowerIngredient) {
                     if !detailsArray.contains(where: { $0.ingredient == ingredient && $0.allergenName == mapped.allergen.displayName }) {
                         let detail = AllergenMatchDetail(
                             ingredient: ingredient,
@@ -231,7 +262,7 @@ class ScannerViewModel: ObservableObject {
 
             for custom in customAllergens {
                 let customLower = custom.lowercased()
-                if lowerIngredient.contains(customLower) {
+                if lowerIngredient.contains(customLower) && !isNegated(customLower, in: lowerIngredient) {
                     if !detailsArray.contains(where: { $0.ingredient == ingredient && $0.allergenName.lowercased() == customLower }) {
                         let detail = AllergenMatchDetail(
                             ingredient: ingredient,
@@ -276,6 +307,14 @@ class ScannerViewModel: ObservableObject {
         self.customAllergenStatuses = customStatus
         self.lastScanSafety = safety
 
+        if isSubscriber {
+            let ambiguous = AIIngredientAnalyzer.shared.findAmbiguous(in: product.ingredients)
+            let cross = AIIngredientAnalyzer.shared.findCrossContamination(in: product.ingredients)
+            advancedWarnings = ambiguous + cross
+        } else {
+            advancedWarnings = []
+        }
+
         // Compose alert message summarizing safety
         if safety == .safe {
             alertMessage = "\(product.productName) is safe to eat!"
@@ -313,6 +352,13 @@ class ScannerViewModel: ObservableObject {
                 alertMessage! += "\n\(detail.ingredient): \(detail.allergenName) - \(detail.explanation)"
             }
         }
+
+        if isSubscriber && !advancedWarnings.isEmpty {
+            alertMessage! += "\nAI Warnings:"
+            for warning in advancedWarnings {
+                alertMessage! += "\n\u2022 \(warning)"
+            }
+        }
         
         let generator = UINotificationFeedbackGenerator()
         switch safety {
@@ -331,6 +377,32 @@ class ScannerViewModel: ObservableObject {
             safety: safety
         )
         HistoryService.shared.addRecord(record)
+    }
+
+    private func isNegated(_ key: String, in text: String) -> Bool {
+        let variants: [String]
+        if key.hasSuffix("s") {
+            let singular = String(key.dropLast())
+            variants = [key, singular]
+        } else {
+            variants = [key]
+        }
+
+        for variant in variants {
+            let patterns = [
+                "\(variant) free",
+                "\(variant)-free",
+                "free from \(variant)",
+                "no \(variant)",
+                "without \(variant)",
+                "does not contain \(variant)",
+                "contains no \(variant)"
+            ]
+            if patterns.contains(where: { text.contains($0) }) {
+                return true
+            }
+        }
+        return false
     }
 }
 

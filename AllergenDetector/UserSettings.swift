@@ -22,6 +22,7 @@ class UserSettings: ObservableObject {
 
     private let defaultsKey = "SelectedAllergens"
     private let customKey = "CustomAllergens"
+    private let subscriberKey = "IsSubscriber"
 
     init() {
         if let data = UserDefaults.standard.data(forKey: defaultsKey),
@@ -37,6 +38,8 @@ class UserSettings: ObservableObject {
         } else {
             customAllergens = []
         }
+
+        isSubscriber = UserDefaults.standard.bool(forKey: subscriberKey)
     }
 
     private func save() {
@@ -48,6 +51,12 @@ class UserSettings: ObservableObject {
     private func saveCustom() {
         if let data = try? JSONEncoder().encode(customAllergens) {
             UserDefaults.standard.set(data, forKey: customKey)
+        }
+    }
+
+    @Published var isSubscriber: Bool {
+        didSet {
+            UserDefaults.standard.set(isSubscriber, forKey: subscriberKey)
         }
     }
 
