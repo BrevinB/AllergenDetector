@@ -247,7 +247,7 @@ class ScannerViewModel: ObservableObject {
             */
             
             for (key, mapped) in Self.ingredientToAllergen {
-                if lowerIngredient.contains(key) && selectedAllergens.contains(mapped.allergen) {
+                if lowerIngredient.contains(key) && selectedAllergens.contains(mapped.allergen) && !isNegated(key, in: lowerIngredient) {
                     if !detailsArray.contains(where: { $0.ingredient == ingredient && $0.allergenName == mapped.allergen.displayName }) {
                         let detail = AllergenMatchDetail(
                             ingredient: ingredient,
@@ -262,7 +262,7 @@ class ScannerViewModel: ObservableObject {
 
             for custom in customAllergens {
                 let customLower = custom.lowercased()
-                if lowerIngredient.contains(customLower) {
+                if lowerIngredient.contains(customLower) && !isNegated(customLower, in: lowerIngredient) {
                     if !detailsArray.contains(where: { $0.ingredient == ingredient && $0.allergenName.lowercased() == customLower }) {
                         let detail = AllergenMatchDetail(
                             ingredient: ingredient,
@@ -377,6 +377,32 @@ class ScannerViewModel: ObservableObject {
             safety: safety
         )
         HistoryService.shared.addRecord(record)
+    }
+
+    private func isNegated(_ key: String, in text: String) -> Bool {
+        let variants: [String]
+        if key.hasSuffix("s") {
+            let singular = String(key.dropLast())
+            variants = [key, singular]
+        } else {
+            variants = [key]
+        }
+
+        for variant in variants {
+            let patterns = [
+                "\(variant) free",
+                "\(variant)-free",
+                "free from \(variant)",
+                "no \(variant)",
+                "without \(variant)",
+                "does not contain \(variant)",
+                "contains no \(variant)"
+            ]
+            if patterns.contains(where: { text.contains($0) }) {
+                return true
+            }
+        }
+        return false
     }
 }
 
