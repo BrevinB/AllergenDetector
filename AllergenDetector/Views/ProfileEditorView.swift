@@ -54,7 +54,7 @@ struct ProfileEditorView: View {
                                 .padding(8)
                                 .background(
                                     Circle()
-                                        .fill(Color.accentColor.opacity(0.2))
+                                        .fill(Color.brand.opacity(0.15))
                                 )
                         }
                     }
@@ -71,7 +71,7 @@ struct ProfileEditorView: View {
                                         .frame(width: 50, height: 50)
                                         .background(
                                             Circle()
-                                                .fill(emoji == option ? Color.accentColor.opacity(0.3) : Color.secondary.opacity(0.1))
+                                                .fill(emoji == option ? Color.brand.opacity(0.3) : Color.secondary.opacity(0.1))
                                         )
                                 }
                             }
@@ -90,7 +90,7 @@ struct ProfileEditorView: View {
                             .frame(width: 50, height: 50)
                             .background(
                                 Circle()
-                                    .fill(Color.accentColor.opacity(0.2))
+                                    .fill(Color.brand.opacity(0.15))
                             )
 
                         Text(name.isEmpty ? "New Profile" : name)

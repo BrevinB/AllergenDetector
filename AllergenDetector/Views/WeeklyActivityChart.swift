@@ -18,7 +18,7 @@ struct WeeklyActivityChart: View {
         VStack(alignment: .leading, spacing: 12) {
             HStack {
                 Image(systemName: "chart.bar.xaxis")
-                    .foregroundColor(.accentColor)
+                    .foregroundColor(.brand)
                     .imageScale(.large)
 
                 Text("Weekly Activity")
@@ -42,7 +42,7 @@ struct WeeklyActivityChart: View {
                                 RoundedRectangle(cornerRadius: 4)
                                     .fill(
                                         LinearGradient(
-                                            colors: [Color.accentColor, Color.accentColor.opacity(0.7)],
+                                            colors: [Color.brand, Color.brand.opacity(0.7)],
                                             startPoint: .top,
                                             endPoint: .bottom
                                         )
@@ -73,11 +73,7 @@ struct WeeklyActivityChart: View {
             .padding(.vertical, 8)
         }
         .padding()
-        .background(
-            RoundedRectangle(cornerRadius: 12)
-                .fill(Color(.systemBackground))
-                .shadow(color: Color.black.opacity(0.1), radius: 5, x: 0, y: 2)
-        )
+        .themedCard()
     }
 
     private func barHeight(for count: Int) -> CGFloat {

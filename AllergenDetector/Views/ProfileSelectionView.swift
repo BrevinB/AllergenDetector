@@ -16,8 +16,7 @@ struct ProfileSelectionView: View {
     var body: some View {
         List {
             Section(header: Text("Family Profiles")
-                .font(.headline)
-                .foregroundColor(.primary)
+                .themedSectionHeader()
             ) {
                 ForEach(profileManager.profiles) { profile in
                     ProfileRow(
@@ -40,7 +39,7 @@ struct ProfileSelectionView: View {
                     showingAddProfile = true
                 }) {
                     Label("Add New Profile", systemImage: "plus.circle.fill")
-                        .foregroundColor(.accentColor)
+                        .foregroundColor(.brand)
                 }
             }
 
@@ -85,7 +84,7 @@ struct ProfileRow: View {
                     .frame(width: 50, height: 50)
                     .background(
                         Circle()
-                            .fill(isActive ? Color.accentColor.opacity(0.2) : Color.secondary.opacity(0.1))
+                            .fill(isActive ? Color.brand.opacity(0.15) : Color.secondary.opacity(0.1))
                     )
 
                 VStack(alignment: .leading, spacing: 4) {
@@ -96,7 +95,7 @@ struct ProfileRow: View {
 
                         if isActive {
                             Image(systemName: "checkmark.circle.fill")
-                                .foregroundColor(.accentColor)
+                                .foregroundColor(.brand)
                                 .imageScale(.small)
                         }
                     }
@@ -118,7 +117,7 @@ struct ProfileRow: View {
 
                 Button(action: onEdit) {
                     Image(systemName: "pencil.circle.fill")
-                        .foregroundColor(.accentColor)
+                        .foregroundColor(.brand)
                         .imageScale(.large)
                 }
                 .buttonStyle(BorderlessButtonStyle())

@@ -23,9 +23,15 @@ struct InsightsView: View {
                     VStack(spacing: 8) {
                         Text(profile.emoji)
                             .font(.system(size: 48))
+                            .padding(8)
+                            .background(
+                                Circle()
+                                    .fill(Color.brandLight)
+                            )
 
                         Text("\(profile.name)'s Insights")
                             .font(.title2.bold())
+                            .foregroundColor(.brand)
 
                         if insights.totalScans > 0 {
                             Text("Based on \(insights.totalScans) scan\(insights.totalScans == 1 ? "" : "s")")
@@ -60,28 +66,28 @@ struct InsightsView: View {
                             icon: "chart.bar.fill",
                             title: "Total Scans",
                             value: "\(insights.totalScans)",
-                            color: .blue
+                            color: .brand
                         )
 
                         StatCard(
                             icon: "calendar",
                             title: "This Week",
                             value: "\(insights.scansThisWeek)",
-                            color: .purple
+                            color: .brandDark
                         )
 
                         StatCard(
                             icon: "checkmark.shield.fill",
                             title: "Safe Products",
                             value: "\(insights.safeScans)",
-                            color: .green
+                            color: .safeGreen
                         )
 
                         StatCard(
                             icon: "exclamationmark.triangle.fill",
                             title: "Allergens Avoided",
                             value: "\(insights.allergenAvoided)",
-                            color: .red
+                            color: .warningRed
                         )
                     }
 
@@ -92,7 +98,7 @@ struct InsightsView: View {
                             title: "Safety Rate",
                             percentage: insights.safetyRate,
                             subtitle: "\(insights.safeScans) out of \(insights.totalScans) products were safe for you",
-                            color: insights.safetyRate >= 0.7 ? .green : insights.safetyRate >= 0.4 ? .orange : .red
+                            color: insights.safetyRate >= 0.7 ? .safeGreen : insights.safetyRate >= 0.4 ? .cautionAmber : .warningRed
                         )
                     }
 
@@ -105,7 +111,7 @@ struct InsightsView: View {
                                     title: "Current Streak",
                                     value: "\(insights.currentStreak)",
                                     subtitle: "day\(insights.currentStreak == 1 ? "" : "s")",
-                                    color: .orange
+                                    color: .cautionAmber
                                 )
                             }
 
@@ -115,7 +121,7 @@ struct InsightsView: View {
                                     title: "Longest Streak",
                                     value: "\(insights.longestStreak)",
                                     subtitle: "day\(insights.longestStreak == 1 ? "" : "s")",
-                                    color: .yellow
+                                    color: .brand
                                 )
                             }
                         }
@@ -140,11 +146,11 @@ struct InsightsView: View {
                         VStack(alignment: .leading, spacing: 12) {
                             HStack {
                                 Image(systemName: "chart.pie.fill")
-                                    .foregroundColor(.accentColor)
+                                    .foregroundColor(.brand)
                                     .imageScale(.large)
 
                                 Text("Safety Breakdown")
-                                    .font(.headline)
+                                    .themedSectionHeader()
 
                                 Spacer()
                             }
@@ -155,7 +161,7 @@ struct InsightsView: View {
                                     label: "Safe",
                                     count: insights.safeScans,
                                     total: insights.totalScans,
-                                    color: .green
+                                    color: .safeGreen
                                 )
 
                                 SafetyBreakdownRow(
@@ -163,7 +169,7 @@ struct InsightsView: View {
                                     label: "Unsafe",
                                     count: insights.unsafeScans,
                                     total: insights.totalScans,
-                                    color: .red
+                                    color: .warningRed
                                 )
 
                                 if insights.unknownScans > 0 {
@@ -172,23 +178,19 @@ struct InsightsView: View {
                                         label: "Unknown",
                                         count: insights.unknownScans,
                                         total: insights.totalScans,
-                                        color: .orange
+                                        color: .cautionAmber
                                     )
                                 }
                             }
                         }
                         .padding()
-                        .background(
-                            RoundedRectangle(cornerRadius: 12)
-                                .fill(Color(.systemBackground))
-                                .shadow(color: Color.black.opacity(0.1), radius: 5, x: 0, y: 2)
-                        )
+                        .themedCard()
                     }
                 }
             }
             .padding()
         }
-        .background(Color(.systemGroupedBackground))
+        .background(Color.surfaceLight)
         .navigationTitle("Insights")
         .navigationBarTitleDisplayMode(.inline)
     }

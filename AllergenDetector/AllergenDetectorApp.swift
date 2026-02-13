@@ -14,6 +14,7 @@ struct AllergenDetectorApp: App {
         WindowGroup {
             ContentView()
                 .environmentObject(settings)
+                .tint(.brand)
         }
     }
 }

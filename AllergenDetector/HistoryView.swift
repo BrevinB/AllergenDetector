@@ -59,11 +59,11 @@ struct HistoryView: View {
                     ZStack(alignment: .topTrailing) {
                         Image(systemName: "line.3.horizontal.decrease.circle")
                             .font(.title3)
-                            .foregroundColor(filter.hasActiveFilters ? .accentColor : .primary)
+                            .foregroundColor(filter.hasActiveFilters ? .brand : .primary)
 
                         if filter.activeFilterCount > 0 {
                             Circle()
-                                .fill(Color.red)
+                                .fill(Color.brand)
                                 .frame(width: 16, height: 16)
                                 .overlay(
                                     Text("\(filter.activeFilterCount)")
@@ -96,7 +96,7 @@ struct HistoryView: View {
                             FilterChip(
                                 text: filter.dateRange.rawValue,
                                 icon: "calendar",
-                                color: .blue,
+                                color: .brand,
                                 onRemove: {
                                     filter.dateRange = .allTime
                                 }
@@ -108,12 +108,12 @@ struct HistoryView: View {
                         }) {
                             Text("Clear All")
                                 .font(.caption.bold())
-                                .foregroundColor(.red)
+                                .foregroundColor(.warningRed)
                                 .padding(.horizontal, 12)
                                 .padding(.vertical, 6)
                                 .background(
                                     Capsule()
-                                        .stroke(Color.red, lineWidth: 1)
+                                        .stroke(Color.warningRed, lineWidth: 1)
                                 )
                         }
                     }
@@ -131,7 +131,7 @@ struct HistoryView: View {
                     Button("Clear All History") {
                         history.records.removeAll()
                     }
-                    .foregroundColor(.red)
+                    .foregroundColor(.warningRed)
                 }
 
                 if filteredRecords.isEmpty {
@@ -170,13 +170,7 @@ struct HistoryView: View {
                             case .unknown: return "questionmark.diamond.fill"
                             }
                         }())
-                        .foregroundColor({
-                            switch record.safety {
-                            case .safe: return .green
-                            case .unsafe: return .red
-                            case .unknown: return .yellow
-                            }
-                        }())
+                        .foregroundColor(record.safety.themeColor)
                     }
                     .padding(.vertical, 4)
                     }
@@ -255,11 +249,7 @@ struct HistoryView: View {
     }
 
     private func statusColor(for safety: SafetyStatus) -> Color {
-        switch safety {
-        case .safe: return .green
-        case .unsafe: return .red
-        case .unknown: return .orange
-        }
+        safety.themeColor
     }
 }
 
@@ -364,7 +354,7 @@ struct FilterSheet: View {
                             HStack {
                                 Spacer()
                                 Label("Reset All Filters", systemImage: "arrow.counterclockwise")
-                                    .foregroundColor(.red)
+                                    .foregroundColor(.warningRed)
                                 Spacer()
                             }
                         }
@@ -392,11 +382,7 @@ struct FilterSheet: View {
     }
 
     private func colorFor(_ status: SafetyStatus) -> Color {
-        switch status {
-        case .safe: return .green
-        case .unsafe: return .red
-        case .unknown: return .orange
-        }
+        status.themeColor
     }
 }
 
@@ -417,11 +403,11 @@ struct ExportFormatPicker: View {
                         }) {
                             HStack(spacing: 16) {
                                 Image(systemName: format.icon)
-                                    .foregroundColor(.accentColor)
+                                    .foregroundColor(.brand)
                                     .frame(width: 32, height: 32)
                                     .background(
                                         RoundedRectangle(cornerRadius: 8)
-                                            .fill(Color.accentColor.opacity(0.1))
+                                            .fill(Color.brand.opacity(0.1))
                                     )
 
                                 VStack(alignment: .leading, spacing: 4) {
@@ -438,7 +424,7 @@ struct ExportFormatPicker: View {
 
                                 if selectedFormat == format {
                                     Image(systemName: "checkmark.circle.fill")
-                                        .foregroundColor(.accentColor)
+                                        .foregroundColor(.brand)
                                 }
                             }
                             .padding(.vertical, 8)

@@ -24,7 +24,7 @@ struct RecommendationsView: View {
                     VStack(spacing: 12) {
                         Image(systemName: "exclamationmark.triangle.fill")
                             .font(.system(size: 40))
-                            .foregroundColor(.red)
+                            .foregroundColor(.warningRed)
 
                         Text("Product Contains Allergens")
                             .font(.title3.bold())
@@ -154,7 +154,7 @@ struct RecommendationCard: View {
                         ForEach(0..<5) { index in
                             Image(systemName: index < starCount ? "star.fill" : "star")
                                 .font(.caption2)
-                                .foregroundColor(.orange)
+                                .foregroundColor(.cautionAmber)
                         }
 
                         Text("\(Int(recommendation.matchScore * 100))% match")
@@ -167,7 +167,7 @@ struct RecommendationCard: View {
 
                 // Safe Indicator
                 Image(systemName: "checkmark.shield.fill")
-                    .foregroundColor(.green)
+                    .foregroundColor(.safeGreen)
                     .imageScale(.large)
 
                 Image(systemName: "chevron.right")
@@ -175,11 +175,7 @@ struct RecommendationCard: View {
                     .foregroundColor(.secondary)
             }
             .padding()
-            .background(
-                RoundedRectangle(cornerRadius: 12)
-                    .fill(Color(.systemBackground))
-                    .shadow(color: Color.black.opacity(0.1), radius: 5, x: 0, y: 2)
-            )
+            .themedCard()
         }
         .buttonStyle(PlainButtonStyle())
         .alert("Product Details", isPresented: $showingDetails) {
@@ -191,9 +187,9 @@ struct RecommendationCard: View {
 
     private var rankColor: Color {
         switch rank {
-        case 1: return .green
-        case 2: return .blue
-        case 3: return .purple
+        case 1: return .brand
+        case 2: return .brandDark
+        case 3: return .brand.opacity(0.6)
         default: return .gray
         }
     }

@@ -15,7 +15,7 @@ struct StatCard: View {
     let subtitle: String?
     let color: Color
 
-    init(icon: String, title: String, value: String, subtitle: String? = nil, color: Color = .accentColor) {
+    init(icon: String, title: String, value: String, subtitle: String? = nil, color: Color = .brand) {
         self.icon = icon
         self.title = title
         self.value = value
@@ -49,11 +49,7 @@ struct StatCard: View {
             }
         }
         .padding()
-        .background(
-            RoundedRectangle(cornerRadius: 12)
-                .fill(Color(.systemBackground))
-                .shadow(color: Color.black.opacity(0.1), radius: 5, x: 0, y: 2)
-        )
+        .themedCard()
     }
 }
 
@@ -101,11 +97,7 @@ struct ProgressCard: View {
                 .foregroundColor(.secondary)
         }
         .padding()
-        .background(
-            RoundedRectangle(cornerRadius: 12)
-                .fill(Color(.systemBackground))
-                .shadow(color: Color.black.opacity(0.1), radius: 5, x: 0, y: 2)
-        )
+        .themedCard()
     }
 }
 
@@ -119,7 +111,7 @@ struct TopItemsCard: View {
         VStack(alignment: .leading, spacing: 12) {
             HStack {
                 Image(systemName: icon)
-                    .foregroundColor(.accentColor)
+                    .foregroundColor(.brand)
                     .imageScale(.large)
 
                 Text(title)
@@ -165,11 +157,7 @@ struct TopItemsCard: View {
             }
         }
         .padding()
-        .background(
-            RoundedRectangle(cornerRadius: 12)
-                .fill(Color(.systemBackground))
-                .shadow(color: Color.black.opacity(0.1), radius: 5, x: 0, y: 2)
-        )
+        .themedCard()
     }
 }
 
@@ -178,19 +166,8 @@ struct SafetyBadge: View {
     let status: SafetyStatus
 
     var body: some View {
-        let config: (icon: String, color: Color) = {
-            switch status {
-            case .safe:
-                return ("checkmark.circle.fill", .green)
-            case .unsafe:
-                return ("exclamationmark.triangle.fill", .red)
-            case .unknown:
-                return ("questionmark.circle.fill", .orange)
-            }
-        }()
-
-        Image(systemName: config.icon)
-            .foregroundColor(config.color)
+        Image(systemName: status.themeIcon)
+            .foregroundColor(status.themeColor)
             .imageScale(.medium)
     }
 }
@@ -201,7 +178,7 @@ struct SafetyBadge: View {
         title: "Total Scans",
         value: "47",
         subtitle: "This month",
-        color: .blue
+        color: .brand
     )
     .padding()
 }
@@ -212,7 +189,7 @@ struct SafetyBadge: View {
         title: "Safety Rate",
         percentage: 0.73,
         subtitle: "73% of products were safe",
-        color: .green
+        color: .safeGreen
     )
     .padding()
 }
