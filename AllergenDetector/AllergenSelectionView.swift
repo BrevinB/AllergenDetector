@@ -51,6 +51,11 @@ struct AllergenSelectionView: View {
                     Button("Add") {
                         let trimmed = newCustom.trimmingCharacters(in: .whitespacesAndNewlines)
                         guard !trimmed.isEmpty else { return }
+                        guard trimmed.count <= 50 else { return }
+                        let isDuplicate = settings.customAllergens.contains {
+                            $0.name.lowercased() == trimmed.lowercased()
+                        }
+                        guard !isDuplicate else { return }
                         var updated = settings.customAllergens
                         updated.append(CustomAllergen(name: trimmed))
                         settings.updateCustomAllergens(updated)

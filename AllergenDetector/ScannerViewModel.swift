@@ -173,8 +173,8 @@ class ScannerViewModel: ObservableObject {
                         customAllergens: customAllergens
                     )
                 }
-            } catch _ as ProductError {
-                alertMessage = "Product not found in database. Please try another barcode."
+            } catch let error as ProductError {
+                alertMessage = error.errorDescription ?? "Product not found."
                 showAlert = true
                 let generator = UINotificationFeedbackGenerator()
                 generator.notificationOccurred(.error)
@@ -198,24 +198,13 @@ class ScannerViewModel: ObservableObject {
         selectedAllergens: Set<Allergen>,
         customAllergens: [String]
     ) {
-        print("[DEBUG] Ingredients for \(product.productName):", product.ingredients)
-        
         let intersection = Set(product.allergens).intersection(selectedAllergens)
 
         var detailsArray: [AllergenMatchDetail] = []
-        
+
         for ingredient in product.ingredients {
             let lowerIngredient = ingredient.lowercased()
-            
-            // Old strict matching logic (commented out):
-            /*
-            let key = ingredient.lowercased()
-            if let mapped = Self.ingredientToAllergen[key], selectedAllergens.contains(mapped.allergen) {
-                let detail = AllergenMatchDetail(ingredient: ingredient, allergen: mapped.allergen, allergenName: mapped.allergen.displayName, explanation: mapped.explanation)
-                detailsArray.append(detail)
-            }
-            */
-            
+
             for (key, mapped) in Self.ingredientToAllergen {
                 if lowerIngredient.contains(key) && selectedAllergens.contains(mapped.allergen) {
                     if !detailsArray.contains(where: { $0.ingredient == ingredient && $0.allergenName == mapped.allergen.displayName }) {
