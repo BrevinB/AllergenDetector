@@ -15,8 +15,7 @@ struct AllergenSelectionView: View {
     var body: some View {
         Form {
             Section(header: Text("Avoid These Allergens")
-                        .font(.headline)
-                        .foregroundColor(.primary)
+                        .themedSectionHeader()
             ) {
                 ForEach(Allergen.allCases) { allergen in
                     Toggle(isOn: Binding(
@@ -36,7 +35,7 @@ struct AllergenSelectionView: View {
                 }
             }
 
-            Section(header: Text("Custom Allergens")) {
+            Section(header: Text("Custom Allergens").themedSectionHeader()) {
                 ForEach(settings.customAllergens) { allergen in
                     Toggle(allergen.name, isOn: binding(for: allergen))
                 }
@@ -51,6 +50,11 @@ struct AllergenSelectionView: View {
                     Button("Add") {
                         let trimmed = newCustom.trimmingCharacters(in: .whitespacesAndNewlines)
                         guard !trimmed.isEmpty else { return }
+                        guard trimmed.count <= 50 else { return }
+                        let isDuplicate = settings.customAllergens.contains {
+                            $0.name.lowercased() == trimmed.lowercased()
+                        }
+                        guard !isDuplicate else { return }
                         var updated = settings.customAllergens
                         updated.append(CustomAllergen(name: trimmed))
                         settings.updateCustomAllergens(updated)
@@ -67,6 +71,7 @@ struct AllergenSelectionView: View {
                     settings.updateCustomAllergens([])
                     presentationMode.wrappedValue.dismiss()
                 }
+                .foregroundColor(.warningRed)
             }
         }
         .navigationBarTitleDisplayMode(.inline)

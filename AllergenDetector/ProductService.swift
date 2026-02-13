@@ -21,7 +21,11 @@ class ProductService {
     }()
 
     func fetchProduct(barcode: String) async throws -> Product {
-        let urlString = "https://world.openfoodfacts.org/api/v0/product/\(barcode).json"
+        let sanitized = barcode.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !sanitized.isEmpty, sanitized.allSatisfy(\.isNumber) else {
+            throw ProductError.invalidBarcode
+        }
+        let urlString = "https://world.openfoodfacts.org/api/v0/product/\(sanitized).json"
         guard let url = URL(string: urlString) else {
             throw URLError(.badURL)
         }
@@ -62,8 +66,18 @@ class ProductService {
     }
 }
 
-enum ProductError: Error {
+enum ProductError: LocalizedError {
     case productNotFound
+    case invalidBarcode
+
+    var errorDescription: String? {
+        switch self {
+        case .productNotFound:
+            return "Product not found in database."
+        case .invalidBarcode:
+            return "The barcode is invalid. Barcodes should contain only digits."
+        }
+    }
 }
 
 private struct APIResponse: Codable {

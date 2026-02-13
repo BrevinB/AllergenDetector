@@ -20,6 +20,24 @@ struct BarcodeScannerSheet: View {
             Color.black.opacity(0.2)
                 .ignoresSafeArea()
             VStack(spacing: 0) {
+                // Branded header bar
+                HStack {
+                    Image(systemName: "barcode.viewfinder")
+                        .font(.title3)
+                    Text("Scan Product")
+                        .font(.headline.weight(.bold))
+                    Spacer()
+                    Button(action: { isShowing = false }) {
+                        Image(systemName: "xmark.circle.fill")
+                            .font(.title3)
+                            .foregroundStyle(.white.opacity(0.8))
+                    }
+                }
+                .foregroundColor(.white)
+                .padding(.horizontal, 20)
+                .padding(.vertical, 14)
+                .background(LinearGradient.brandGradient)
+
                 ZStack(alignment: .bottom) {
                     BarcodeScannerView { code in
                         let generator = UINotificationFeedbackGenerator()
@@ -65,6 +83,7 @@ struct BarcodeScannerSheet: View {
                             isShowing = false
                         }
                         .buttonStyle(.borderedProminent)
+                        .tint(.brand)
                         Spacer()
                         Button(role: .cancel) {
                             isShowing = false

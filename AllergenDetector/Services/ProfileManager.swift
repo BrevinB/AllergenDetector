@@ -139,12 +139,10 @@ class ProfileManager: ObservableObject {
             )
 
             addProfile(defaultProfile)
-            print("✅ Migrated legacy allergen settings to new profile system")
         } else {
             // No legacy data, create an empty default profile
             let emptyProfile = UserProfile(name: "Me", emoji: "👤")
             addProfile(emptyProfile)
-            print("✅ Created initial default profile")
         }
     }
 }

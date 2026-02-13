@@ -35,13 +35,13 @@ struct AllergenChip: View {
         .padding(.vertical, 12)
         .background(
             Capsule()
-                .fill(Color.accentColor.opacity(0.2))
+                .fill(Color.brand.opacity(0.15))
         )
         .overlay(
             Capsule()
-                .stroke(Color.accentColor, lineWidth: 1)
+                .stroke(Color.brand, lineWidth: 1)
         )
-        .foregroundColor(.accentColor)
+        .foregroundColor(.brand)
         .transition(.scale.combined(with: .opacity))
     }
 }

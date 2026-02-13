@@ -47,12 +47,8 @@ struct ContentView: View {
             pulse = false
         } label: {
             Label("Scan Barcode", systemImage: "barcode.viewfinder")
-                .font(.title3)
-                .padding()
-                .frame(maxWidth: .infinity)
         }
-        .buttonStyle(.borderedProminent)
-        .controlSize(.large)
+        .buttonStyle(.branded)
         .padding(.horizontal)
     }
 
@@ -107,7 +103,7 @@ struct ContentView: View {
                         .padding(.vertical, 8)
                         .background(
                             RoundedRectangle(cornerRadius: 20)
-                                .fill(Color.accentColor.opacity(0.15))
+                                .fill(Color.brand.opacity(0.15))
                         )
                     }
                     .buttonStyle(PlainButtonStyle())
@@ -169,7 +165,7 @@ struct ContentView: View {
             .overlay {
                 if viewModel.isLoading {
                     ProgressView()
-                        .progressViewStyle(CircularProgressViewStyle(tint: .accentColor))
+                        .progressViewStyle(CircularProgressViewStyle(tint: .brand))
                         .scaleEffect(1.5)
                 }
             }
@@ -209,24 +205,10 @@ struct ProductCardView: View {
     let safetyStatus: SafetyStatus
 
     var body: some View {
-        // Header config
-        let icon: String
-        let title: String
-        let bannerBase: Color
-        switch safetyStatus {
-        case .safe:    icon = "checkmark.shield.fill";      title = "Safe to Eat";    bannerBase = Color(.systemGreen)
-        case .unsafe:  icon = "exclamationmark.triangle.fill"; title = "Warning!";    bannerBase = Color(.systemRed)
-        case .unknown: icon = "questionmark.diamond.fill";  title = "Unknown Safety"; bannerBase = Color(.systemOrange)
-        }
-
-        // Card styling (dark vs light)
-        let cardFill: some ShapeStyle =
-            colorScheme == .dark ? AnyShapeStyle(.regularMaterial)
-                                 : AnyShapeStyle(Color(.systemBackground))
-        let cardStroke = colorScheme == .dark ? Color.white.opacity(0.10)
-                                              : Color.black.opacity(0.06)
-        let dropShadow = colorScheme == .dark ? Color.black.opacity(0.70)
-                                              : Color.black.opacity(0.15)
+        // Header config from theme
+        let icon = safetyStatus.themeIcon
+        let title = safetyStatus.themeLabel
+        let bannerBase = safetyStatus.themeColor
 
         // Build combined allergen list for the chip grid (flagged first)
         let allItems: [AllergenItem] = {
@@ -344,11 +326,11 @@ struct ProductCardView: View {
                 }) {
                     HStack(spacing: 8) {
                         Image(systemName: "sparkles")
-                            .foregroundColor(.accentColor)
+                            .foregroundColor(.brand)
 
                         Text("Find Safe Alternatives")
                             .font(.headline)
-                            .foregroundColor(.accentColor)
+                            .foregroundColor(.brand)
 
                         Spacer()
 
@@ -358,21 +340,13 @@ struct ProductCardView: View {
                     }
                     .padding()
                     .background(
-                        Color.accentColor.opacity(0.1)
+                        Color.brand.opacity(0.1)
                     )
                 }
                 .buttonStyle(PlainButtonStyle())
             }
         }
-        .background(
-            RoundedRectangle(cornerRadius: 16)
-                .fill(cardFill)
-                .overlay(
-                    RoundedRectangle(cornerRadius: 16)
-                        .stroke(cardStroke, lineWidth: 1)
-                )
-                .shadow(color: dropShadow, radius: 22, x: 0, y: 16)
-        )
+        .themedCard()
         .sheet(isPresented: $showingRecommendations) {
             let customAllergenNames = Array(customAllergenStatuses.keys)
             RecommendationsView(
@@ -396,13 +370,9 @@ private struct AllergenChips: View {
     let isSafe: Bool
 
     var body: some View {
-        let fillColor: Color = isSafe
-            ? (scheme == .dark ? Color.green.opacity(0.18) : Color.green.opacity(0.12))
-            : (scheme == .dark ? Color.red.opacity(0.22) : Color.red.opacity(0.14))
-        let strokeColor: Color = isSafe
-            ? Color.green.opacity(scheme == .dark ? 0.55 : 0.35)
-            : Color.red.opacity(scheme == .dark ? 0.55 : 0.35)
-        let foreground: Color = isSafe ? Color.green : Color.red
+        let base: Color = isSafe ? .safeGreen : .warningRed
+        let fillColor = base.opacity(scheme == .dark ? (isSafe ? 0.18 : 0.22) : (isSafe ? 0.12 : 0.14))
+        let strokeColor = base.opacity(scheme == .dark ? 0.55 : 0.35)
 
         HStack(spacing: 6) {
             Image(systemName: isSafe ? "checkmark.circle.fill" : "xmark.octagon.fill")
@@ -413,15 +383,9 @@ private struct AllergenChips: View {
         }
         .padding(.horizontal, 10)
         .padding(.vertical, 6)
-        .background(
-            Capsule()
-                .fill(fillColor)
-        )
-        .overlay(
-            Capsule()
-                .stroke(strokeColor, lineWidth: 1)
-        )
-        .foregroundStyle(foreground)
+        .background(Capsule().fill(fillColor))
+        .overlay(Capsule().stroke(strokeColor, lineWidth: 1))
+        .foregroundStyle(base)
     }
 }
 
