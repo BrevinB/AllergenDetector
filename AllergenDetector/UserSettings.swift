@@ -4,51 +4,62 @@
 //
 //  Created by Brevin Blalock on 5/30/25.
 //
+//  Now acts as a facade over ProfileManager for the active profile
+//
 
 import Foundation
 import Combine
 
 class UserSettings: ObservableObject {
-    @Published var selectedAllergens: Set<Allergen> {
-        didSet {
-            save()
-        }
-    }
-    @Published var customAllergens: [CustomAllergen] {
-        didSet {
-            saveCustom()
-        }
-    }
+    private let profileManager = ProfileManager.shared
+    private var cancellables = Set<AnyCancellable>()
 
-    private let defaultsKey = "SelectedAllergens"
-    private let customKey = "CustomAllergens"
+    @Published var selectedAllergens: Set<Allergen> = []
+    @Published var customAllergens: [CustomAllergen] = []
 
     init() {
-        if let data = UserDefaults.standard.data(forKey: defaultsKey),
-           let saved = try? JSONDecoder().decode(Set<Allergen>.self, from: data) {
-            selectedAllergens = saved
+        // Listen to profile manager changes and update published properties
+        profileManager.$profiles
+            .sink { [weak self] _ in
+                self?.refreshFromActiveProfile()
+            }
+            .store(in: &cancellables)
+
+        profileManager.$activeProfileId
+            .sink { [weak self] _ in
+                self?.refreshFromActiveProfile()
+            }
+            .store(in: &cancellables)
+
+        // Initial load
+        refreshFromActiveProfile()
+    }
+
+    /// Refreshes the published properties from the active profile
+    private func refreshFromActiveProfile() {
+        if let active = profileManager.activeProfile {
+            selectedAllergens = active.selectedAllergens
+            customAllergens = active.customAllergens
         } else {
             selectedAllergens = []
-        }
-
-        if let data = UserDefaults.standard.data(forKey: customKey),
-           let array = try? JSONDecoder().decode([CustomAllergen].self, from: data) {
-            customAllergens = array
-        } else {
             customAllergens = []
         }
     }
 
-    private func save() {
-        if let data = try? JSONEncoder().encode(selectedAllergens) {
-            UserDefaults.standard.set(data, forKey: defaultsKey)
-        }
+    /// Updates the active profile's selected allergens
+    func updateSelectedAllergens(_ allergens: Set<Allergen>) {
+        guard var profile = profileManager.activeProfile else { return }
+        profile.selectedAllergens = allergens
+        profileManager.updateProfile(profile)
+        selectedAllergens = allergens
     }
 
-    private func saveCustom() {
-        if let data = try? JSONEncoder().encode(customAllergens) {
-            UserDefaults.standard.set(data, forKey: customKey)
-        }
+    /// Updates the active profile's custom allergens
+    func updateCustomAllergens(_ allergens: [CustomAllergen]) {
+        guard var profile = profileManager.activeProfile else { return }
+        profile.customAllergens = allergens
+        profileManager.updateProfile(profile)
+        customAllergens = allergens
     }
 
     var activeCustomAllergenNames: [String] {

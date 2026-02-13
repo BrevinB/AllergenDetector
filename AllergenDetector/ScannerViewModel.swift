@@ -162,7 +162,8 @@ class ScannerViewModel: ObservableObject {
                         barcode: product.barcode,
                         productName: product.productName,
                         dateScanned: Date(),
-                        safety: .unknown
+                        safety: .unknown,
+                        profileId: ProfileManager.shared.activeProfileId
                     )
                     HistoryService.shared.addRecord(record)
                 } else {
@@ -328,7 +329,8 @@ class ScannerViewModel: ObservableObject {
             barcode: product.barcode,
             productName: product.productName,
             dateScanned: Date(),
-            safety: safety
+            safety: safety,
+            profileId: ProfileManager.shared.activeProfileId
         )
         HistoryService.shared.addRecord(record)
     }

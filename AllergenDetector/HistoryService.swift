@@ -11,49 +11,82 @@ class HistoryService: ObservableObject {
     static let shared = HistoryService()
 
     @Published var records: [ScanRecord] = []
+    private var allRecords: [ScanRecord] = []  // All records across all profiles
+    private var cancellables = Set<AnyCancellable>()
 
     private let defaultsKey = "ScanHistory"
 
     private init() {
         load()
+
+        // Listen to active profile changes and filter records
+        ProfileManager.shared.$activeProfileId
+            .sink { [weak self] _ in
+                self?.filterRecordsForActiveProfile()
+            }
+            .store(in: &cancellables)
     }
 
     /// Adds a new scan record to history (at the front) and persists it.
     func addRecord(_ record: ScanRecord) {
-        if let last = records.first,
+        if let last = allRecords.first,
            last.barcode == record.barcode,
            last.productName == record.productName,
            abs(record.dateScanned.timeIntervalSince(last.dateScanned)) < 5 {
             return
         }
-        records.insert(record, at: 0)
+        allRecords.insert(record, at: 0)
         save()
+        filterRecordsForActiveProfile()
     }
 
     /// Loads saved history from UserDefaults. If none exists, starts with an empty array.
     private func load() {
         guard let data = UserDefaults.standard.data(forKey: defaultsKey),
               let saved = try? JSONDecoder().decode([ScanRecord].self, from: data) else {
+            allRecords = []
             records = []
             return
         }
-        records = saved
+        allRecords = saved
+        filterRecordsForActiveProfile()
     }
 
-    /// Encodes the current records array and writes it to UserDefaults.
+    /// Encodes all records and writes to UserDefaults.
     private func save() {
-        if let data = try? JSONEncoder().encode(records) {
+        if let data = try? JSONEncoder().encode(allRecords) {
             UserDefaults.standard.set(data, forKey: defaultsKey)
         }
     }
 
-    /// Creates a plain text representation of the history records.
+    /// Filters the allRecords array to show only records for the active profile
+    private func filterRecordsForActiveProfile() {
+        guard let activeProfileId = ProfileManager.shared.activeProfileId else {
+            records = []
+            return
+        }
+
+        // Show records that match the active profile, OR records with no profileId (legacy data)
+        records = allRecords.filter { record in
+            record.profileId == activeProfileId || record.profileId == nil
+        }
+    }
+
+    /// Creates a plain text representation of the history records for the active profile.
     private func makeTextString() -> String {
         let formatter = DateFormatter()
         formatter.dateStyle = .short
         formatter.timeStyle = .short
 
         var lines: [String] = []
+
+        // Add profile name as header
+        if let profile = ProfileManager.shared.activeProfile {
+            lines.append("Scan History for \(profile.emoji) \(profile.name)")
+            lines.append(String(repeating: "=", count: 40))
+            lines.append("")
+        }
+
         for record in records {
             let dateString = formatter.string(from: record.dateScanned)
             let safeString: String

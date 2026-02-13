@@ -9,6 +9,7 @@ import SwiftUI
 
 struct ContentView: View {
     @EnvironmentObject var settings: UserSettings
+    @ObservedObject var profileManager = ProfileManager.shared
     @StateObject private var viewModel = ScannerViewModel()
     @State private var isShowingScanner = false
     @State private var pulse = false  // For button pulse animation
@@ -89,6 +90,29 @@ struct ContentView: View {
         NavigationView {
             ScrollView {
             VStack(spacing: 24) {
+                // MARK: Active Profile Indicator
+                if let activeProfile = profileManager.activeProfile {
+                    NavigationLink(destination: ProfileSelectionView()) {
+                        HStack(spacing: 8) {
+                            Text(activeProfile.emoji)
+                                .font(.title3)
+                            Text(activeProfile.name)
+                                .font(.headline)
+                                .foregroundColor(.primary)
+                            Image(systemName: "chevron.right")
+                                .font(.caption)
+                                .foregroundColor(.secondary)
+                        }
+                        .padding(.horizontal, 16)
+                        .padding(.vertical, 8)
+                        .background(
+                            RoundedRectangle(cornerRadius: 20)
+                                .fill(Color.accentColor.opacity(0.15))
+                        )
+                    }
+                    .buttonStyle(PlainButtonStyle())
+                }
+
                 // MARK: Selected Allergen Chips (animated)
                 allergenChipsView
                 
@@ -109,15 +133,26 @@ struct ContentView: View {
             .navigationTitle("Allergen Detector")
             .toolbar {
                 ToolbarItem(placement: .navigationBarLeading) {
-                    NavigationLink(destination: HistoryView()) {
-                        Label("History", systemImage: "clock.fill")
+                    HStack(spacing: 16) {
+                        NavigationLink(destination: InsightsView()) {
+                            Label("Insights", systemImage: "chart.bar.fill")
+                        }
+
+                        NavigationLink(destination: HistoryView()) {
+                            Label("History", systemImage: "clock.fill")
+                        }
                     }
                 }
-                
-                
+
                 ToolbarItem(placement: .navigationBarTrailing) {
-                    NavigationLink(destination: AllergenSelectionView()) {
-                        Label("Allergens", systemImage: "list.bullet.clipboard")
+                    HStack(spacing: 16) {
+                        NavigationLink(destination: ProfileSelectionView()) {
+                            Label("Profiles", systemImage: "person.2.fill")
+                        }
+
+                        NavigationLink(destination: AllergenSelectionView()) {
+                            Label("Allergens", systemImage: "list.bullet.clipboard")
+                        }
                     }
                 }
             }
@@ -164,6 +199,7 @@ struct ProductCardView: View {
     @Environment(\.colorScheme) private var colorScheme
     @State private var showAllergens = true
     @State private var showReasons = false
+    @State private var showingRecommendations = false
 
     let product: Product
     let selectedAllergens: Set<Allergen>
@@ -299,6 +335,34 @@ struct ProductCardView: View {
                 .padding(.horizontal)
                 .padding(.vertical, 12)
             }
+
+            // RECOMMENDATIONS BUTTON for unsafe products
+            if safetyStatus == .unsafe {
+                Divider()
+                Button(action: {
+                    showingRecommendations = true
+                }) {
+                    HStack(spacing: 8) {
+                        Image(systemName: "sparkles")
+                            .foregroundColor(.accentColor)
+
+                        Text("Find Safe Alternatives")
+                            .font(.headline)
+                            .foregroundColor(.accentColor)
+
+                        Spacer()
+
+                        Image(systemName: "chevron.right")
+                            .font(.caption.bold())
+                            .foregroundColor(.secondary)
+                    }
+                    .padding()
+                    .background(
+                        Color.accentColor.opacity(0.1)
+                    )
+                }
+                .buttonStyle(PlainButtonStyle())
+            }
         }
         .background(
             RoundedRectangle(cornerRadius: 16)
@@ -309,6 +373,14 @@ struct ProductCardView: View {
                 )
                 .shadow(color: dropShadow, radius: 22, x: 0, y: 16)
         )
+        .sheet(isPresented: $showingRecommendations) {
+            let customAllergenNames = Array(customAllergenStatuses.keys)
+            RecommendationsView(
+                originalProduct: product,
+                selectedAllergens: selectedAllergens,
+                customAllergens: customAllergenNames
+            )
+        }
     }
 }
 

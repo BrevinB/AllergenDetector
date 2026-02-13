@@ -22,11 +22,13 @@ struct AllergenSelectionView: View {
                     Toggle(isOn: Binding(
                         get: { settings.selectedAllergens.contains(allergen) },
                         set: { newValue in
+                            var updated = settings.selectedAllergens
                             if newValue {
-                                settings.selectedAllergens.insert(allergen)
+                                updated.insert(allergen)
                             } else {
-                                settings.selectedAllergens.remove(allergen)
+                                updated.remove(allergen)
                             }
+                            settings.updateSelectedAllergens(updated)
                         }
                     )) {
                         Text(allergen.displayName)
@@ -39,7 +41,9 @@ struct AllergenSelectionView: View {
                     Toggle(allergen.name, isOn: binding(for: allergen))
                 }
                 .onDelete { indexSet in
-                    settings.customAllergens.remove(atOffsets: indexSet)
+                    var updated = settings.customAllergens
+                    updated.remove(atOffsets: indexSet)
+                    settings.updateCustomAllergens(updated)
                 }
 
                 HStack {
@@ -47,7 +51,9 @@ struct AllergenSelectionView: View {
                     Button("Add") {
                         let trimmed = newCustom.trimmingCharacters(in: .whitespacesAndNewlines)
                         guard !trimmed.isEmpty else { return }
-                        settings.customAllergens.append(CustomAllergen(name: trimmed))
+                        var updated = settings.customAllergens
+                        updated.append(CustomAllergen(name: trimmed))
+                        settings.updateCustomAllergens(updated)
                         newCustom = ""
                     }
                 }
@@ -57,8 +63,8 @@ struct AllergenSelectionView: View {
         .toolbar {
             ToolbarItem(placement: .navigationBarTrailing) {
                 Button("Clear All") {
-                    settings.selectedAllergens.removeAll()
-                    settings.customAllergens.removeAll()
+                    settings.updateSelectedAllergens([])
+                    settings.updateCustomAllergens([])
                     presentationMode.wrappedValue.dismiss()
                 }
             }
@@ -70,7 +76,14 @@ struct AllergenSelectionView: View {
         guard let index = settings.customAllergens.firstIndex(of: allergen) else {
             return .constant(allergen.isEnabled)
         }
-        return $settings.customAllergens[index].isEnabled
+        return Binding(
+            get: { settings.customAllergens[index].isEnabled },
+            set: { newValue in
+                var updated = settings.customAllergens
+                updated[index].isEnabled = newValue
+                settings.updateCustomAllergens(updated)
+            }
+        )
     }
 }
 
